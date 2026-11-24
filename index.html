@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kiểm tra cách đọc Kanji – Somatome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --ink: #222222;
+    --muted: #6b6b6b;
+    --line: #e2e2e2;
+    --soft: #f6f7f9;
+    --indigo: #2b4c7e;
+    --ok: #1f7a4a;
+    --ok-bg: #e9f6ee;
+    --bad: #b3261e;
+    --bad-bg: #fdecea;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Be Vietnam Pro", "Segoe UI", Arial, sans-serif;
+    font-size: 16px; line-height: 1.5;
+  }
+  .jp { font-family: "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif; }
+  .wrap { max-width: 660px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.35rem; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; font-size: .95rem; }
+
+  .setup { display: grid; gap: 14px; }
+  label.field { display: grid; gap: 6px; font-weight: 500; }
+  select, input[type=number] {
+    font: inherit; padding: 10px 12px; border: 1px solid var(--line);
+    border-radius: 8px; background: #fff; color: var(--ink);
+  }
+  .check { display: flex; gap: 8px; align-items: center; }
+  button {
+    font: inherit; cursor: pointer; border-radius: 8px;
+    border: 1px solid var(--indigo); background: var(--indigo); color: #fff;
+    padding: 11px 18px; font-weight: 500;
+  }
+  button.ghost { background: #fff; color: var(--indigo); }
+  button:focus-visible, select:focus-visible, .opt:focus-visible { outline: 3px solid #9db7e0; outline-offset: 2px; }
+
+  .bar { display: flex; justify-content: space-between; color: var(--muted); font-size: .9rem; margin-bottom: 8px; }
+  .progress { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; margin-bottom: 28px; }
+  .progress span { display: block; height: 100%; background: var(--indigo); width: 0; transition: width .2s; }
+
+  .word { font-size: clamp(2.6rem, 11vw, 4rem); font-weight: 500; text-align: center; margin: 8px 0 4px; letter-spacing: .04em; }
+  .tag { text-align: center; color: var(--muted); font-size: .85rem; margin-bottom: 24px; }
+
+  .opts { display: grid; gap: 10px; }
+  .opt {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    text-align: left; background: #fff; color: var(--ink);
+    border: 1px solid var(--line); padding: 12px 14px; font-weight: 400;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--indigo); }
+  .key {
+    flex: none; width: 28px; height: 28px; border-radius: 50%;
+    display: grid; place-items: center; font-weight: 600; font-size: .85rem;
+    border: 1px solid var(--line); color: var(--muted);
+  }
+  .opt .kana { font-size: 1.25rem; }
+  .opt:disabled { cursor: default; }
+  .opt.correct { border-color: var(--ok); background: var(--ok-bg); }
+  .opt.correct .key { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+  .opt.wrong .key { background: var(--bad); border-color: var(--bad); color: #fff; }
+
+  /* Phần giải thích */
+  .explain { display: none; margin: 20px 0 8px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .explain.show { display: block; }
+  .verdict { padding: 12px 16px; font-weight: 600; }
+  .verdict.ok { background: var(--ok-bg); color: var(--ok); }
+  .verdict.bad { background: var(--bad-bg); color: var(--bad); }
+  .ex-body { padding: 14px 16px 16px; display: grid; gap: 16px; }
+  .ex-word { font-size: 1.6rem; font-weight: 500; }
+  .ex-word small { font-size: 1.1rem; color: var(--indigo); margin-left: 6px; }
+  .ex-meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: .95rem; }
+  .ex-meta dt { color: var(--muted); }
+  .ex-meta dd { margin: 0; }
+  .ex-h { font-weight: 600; font-size: .95rem; margin: 0 0 6px; }
+  .kanji-list { display: grid; gap: 8px; }
+  .kanji-item { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; background: var(--soft); border-radius: 8px; padding: 8px 10px; }
+  .kanji-item .big { font-size: 1.8rem; line-height: 1.1; text-align: center; }
+  .kanji-item .hv { font-weight: 600; }
+  .kanji-item .rd { font-size: .92rem; color: var(--ink); }
+  .kanji-item .rd span { color: var(--muted); }
+  .ex-sent { margin-top: 6px; padding-left: 10px; border-left: 2px solid var(--indigo); }
+  .ex-sent .jp { font-size: 1rem; }
+  .ex-sent b { color: var(--indigo); font-weight: 700; }
+  .ex-sent .vi { color: var(--muted); font-size: .9rem; }
+  .opt-ex { display: grid; gap: 8px; }
+  .opt-ex-row { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; font-size: .95rem; }
+  .opt-ex-row .key { width: 24px; height: 24px; font-size: .75rem; }
+  .opt-ex-row.right .key { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .opt-ex-row.picked .key { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .opt-ex-row .rk { font-size: 1.05rem; }
+  .opt-ex-row .why { color: var(--muted); display: block; }
+
+  .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
+  .hint { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 18px; }
+
+  .score { font-size: 2.4rem; font-weight: 600; text-align: center; margin: 12px 0 0; }
+  .score-sub { text-align: center; color: var(--muted); margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  td .bad { color: var(--bad); }
+  .tablewrap { overflow-x: auto; margin-bottom: 20px; }
+  .hidden { display: none !important; }
+  .timer-row { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .timer-track { flex: 1; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .timer-fill { height: 100%; width: 100%; background: var(--indigo); }
+  .timer-fill.low { background: var(--bad); }
+  .timer-num { font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; font-weight: 600; }
+  .timer-row button { padding: 6px 12px; font-size: .9rem; }
+  .opts.paused { opacity: .25; pointer-events: none; filter: blur(3px); }
+  .paused-note { text-align: center; color: var(--muted); margin: -8px 0 12px; }
+  .inline { display: flex; gap: 10px; align-items: center; }
+  .inline input[type=number] { width: 90px; }
+  @media (prefers-reduced-motion: reduce) { .progress span { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="setup">
+    <h1>Kiểm tra cách đọc Kanji</h1>
+    <p class="sub">Somatome N3 · Chọn cách đọc đúng của từ vựng</p>
+    <div class="setup">
+      <label class="field">Tuần <select id="week"></select></label>
+      <label class="field">Ngày <select id="day"></select></label>
+      <label class="field">Số câu (để trống = tất cả)
+        <input type="number" id="limit" min="1" placeholder="Tất cả">
+      </label>
+      <label class="check"><input type="checkbox" id="shuffle" checked> Đảo thứ tự câu hỏi</label>
+      <div class="inline">
+        <label class="check"><input type="checkbox" id="useTimer" checked> Giới hạn thời gian mỗi câu</label>
+        <input type="number" id="secs" min="3" max="120" value="10"> giây
+      </div>
+      <div class="actions" style="justify-content:flex-start"><button id="startBtn">Bắt đầu</button></div>
+      <p class="sub" id="countInfo" style="margin:0"></p>
+    </div>
+  </section>
+
+  <section id="quiz" class="hidden">
+    <div class="bar"><span id="qnum"></span><span id="qscore"></span></div>
+    <div class="progress"><span id="pbar"></span></div>
+    <div class="word jp" id="qword"></div>
+    <div class="tag" id="qtag"></div>
+    <div class="timer-row" id="timerRow">
+      <div class="timer-track"><div class="timer-fill" id="tfill"></div></div>
+      <span class="timer-num" id="tnum"></span>
+      <button class="ghost" id="pauseBtn">Tạm dừng</button>
+    </div>
+    <p class="paused-note hidden" id="pausedNote">Đang tạm dừng. Bấm “Tiếp tục” để làm tiếp.</p>
+    <div class="opts" id="opts"></div>
+    <div class="explain" id="explain"></div>
+    <div class="actions">
+      <button class="ghost" id="quitBtn">Dừng</button>
+      <button id="nextBtn" disabled>Câu tiếp</button>
+    </div>
+    <p class="hint">Phím tắt: A/B/C/D hoặc 1–4 để chọn, Enter để sang câu tiếp, P để tạm dừng/tiếp tục</p>
+  </section>
+
+  <section id="result" class="hidden">
+    <h1>Kết quả</h1>
+    <div class="score" id="rscore"></div>
+    <div class="score-sub" id="rsub"></div>
+    <div id="wrongWrap">
+      <h2 style="font-size:1.05rem;font-weight:600">Các câu sai</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Từ</th><th>Đáp án đúng</th><th>Bạn chọn</th><th>Hán Việt</th><th>Nghĩa</th></tr></thead>
+          <tbody id="wrongList"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="actions" style="justify-content:flex-start">
+      <button id="retryWrongBtn">Làm lại câu sai</button>
+      <button class="ghost" id="restartBtn">Chọn bài khác</button>
+    </div>
+  </section>
+</div>
+
+<script>
+// ===== Bảng chữ Hán trong sách: Chữ|Hán Việt|Âm On|Âm Kun =====
+const KANJI_RAW = `
+駐|TRÚ|ちゅう|
+無|VÔ|む、ぶ|な・い
+満|MÃN|まん|
+向|HƯỚNG|こう|む・く、む・かう、む・こう
+禁|CẤM|きん|
+関|QUAN|かん|
+係|HỆ|けい|かかり
+断|ĐOẠN|だん|ことわ・る
+横|HOÀNH|おう|よこ
+押|ÁP||お・す、お・さえる
+式|THỨC|しき|
+信|TÍN|しん|
+号|HIỆU|ごう|
+確|XÁC|かく|たし・か、たし・かめる
+認|NHẬN|にん|みと・める
+飛|PHI|ひ|と・ぶ
+非|PHI|ひ|
+常|THƯỜNG|じょう|
+階|GIAI|かい|
+段|ĐOẠN|だん|
+箱|TƯƠNG||はこ
+危|NGUY|き|あぶ・ない
+険|HIỂM|けん|
+捨|XẢ||す・てる
+線|TUYẾN|せん|
+面|DIỆN|めん|
+普|PHỔ|ふ|
+各|CÁC|かく|
+次|THỨ|じ|つぎ
+快|KHOÁI|かい|
+速|TỐC|そく|はや・い
+過|QUÁ|か|す・ぎる
+鉄|THIẾT|てつ|
+指|CHỈ|し|ゆび
+定|ĐỊNH|てい|
+席|TỊCH|せき|
+由|DO|ゆう、ゆ|
+番|PHIÊN|ばん|
+窓|SONG||まど
+側|TRẮC||がわ
+路|LỘ|ろ|
+停|ĐÌNH|てい|
+整|CHỈNH|せい|
+券|KHOÁN|けん|
+現|HIỆN|げん|あらわ・れる
+両|LƯỠNG|りょう|
+替|THẾ||か・える
+優|ƯU|ゆう|やさ・しい
+座|TỌA|ざ|すわ・る
+降|GIÁNG|こう|お・りる、ふ・る
+準|CHUẨN|じゅん|
+備|BỊ|び|そな・える
+営|DOANH|えい|
+閉|BẾ|へい|し・まる、し・める
+案|ÁN|あん|
+内|NỘI|ない|うち
+予|DỰ|よ|
+約|ƯỚC|やく|
+煙|YÊN|えん|けむり
+当|ĐƯƠNG|とう|あ・たる
+全|TOÀN|ぜん|
+客|KHÁCH|きゃく|
+様|DẠNG|よう|さま
+解|GIẢI|かい|
+協|HIỆP|きょう|
+願|NGUYỆN||ねが・う
+観|QUAN|かん|
+園|VIÊN|えん|
+港|CẢNG|こう|みなと
+遊|DU|ゆう|あそ・ぶ
+美|MỸ|び|うつく・しい
+術|THUẬT|じゅつ|
+神|THẦN|しん、じん|かみ
+寺|TỰ|じ|てら
+役|DỊCH|やく|
+郵|BƯU|ゆう|
+局|CỤC|きょく|
+交|GIAO|こう|
+差|SAI|さ|さ・す
+点|ĐIỂM|てん|
+橋|KIỀU|きょう|はし
+公|CÔNG|こう|
+受|THỤ|じゅ|う・ける
+付|PHÓ||つ・く、つ・ける
+科|KHOA|か|
+鼻|TỴ|び|はな
+婦|PHỤ|ふ|
+形|HÌNH|けい、ぎょう|かたち
+骨|CỐT|こつ|ほね
+折|CHIẾT|せつ|お・る、お・れる
+困|KHỐN||こま・る
+消|TIÊU|しょう|き・える、け・す
+防|PHÒNG|ぼう|ふせ・ぐ
+救|CỨU|きゅう|すく・う
+警|CẢNH|けい|
+察|SÁT|さつ|
+故|CỐ|こ|
+伝|TRUYỀN|でん|つた・える
+要|YẾU|よう|い・る
+冷|LÃNH|れい|つめ・たい、ひ・やす、ひ・える、さ・める、さ・ます
+凍|ĐÔNG|とう|こお・る
+庫|KHỐ|こ|
+召|TRIỆU||め・す
+保|BẢO|ほ|
+存|TỒN|ぞん|
+必|TẤT|ひつ|かなら・ず
+蔵|TÀNG|ぞう|
+費|PHÍ|ひ|
+期|KỲ|き|
+限|HẠN|げん|かぎ・る
+製|CHẾ|せい|
+造|TẠO|ぞう|つく・る
+賞|THƯỞNG|しょう|
+法|PHÁP|ほう|
+温|ÔN|おん|あたた・かい
+材|TÀI|ざい|
+卵|NOÃN||たまご
+乳|NHŨ|にゅう|
+粉|PHẤN||こな、こ
+袋|ĐẠI||ふくろ
+混|HỖN|こん|ま・ぜる
+焼|THIÊU||や・く、や・ける
+表|BIỂU|ひょう|おもて、あらわ・す
+裏|LÝ||うら
+留|LƯU|りゅう、る|と・める
+守|THỦ|しゅ、す|まも・る
+濃|NỒNG||こ・い
+薄|BẠC||うす・い
+部|BỘ|ぶ|
+数|SỐ|すう|かず、かぞ・える
+件|KIỆN|けん|
+再|TÁI|さい、さ|
+接|TIẾP|せつ|
+続|TỤC|ぞく|つづ・く、つづ・ける
+示|THỊ|じ|しめ・す
+戻|LỆ||もど・る、もど・す
+完|HOÀN|かん|
+了|LIỄU|りょう|
+登|ĐĂNG|とう、と|のぼ・る
+録|LỤC|ろく|
+砂|SA|さ|すな
+塩|DIÊM|えん|しお
+油|DU|ゆ|あぶら
+緑|LỤC|りょく|みどり
+紅|HỒNG|こう|べに
+冊|SÁCH|さつ|
+個|CÁ|こ|
+枚|MAI|まい|
+告|CÁO|こく|
+利|LỢI|り|
+割|CÁT||わ・る、わ・れる
+倍|BỘI|ばい|
+値|TRỊ||ね
+商|THƯƠNG|しょう|
+支|CHI|し|
+払|PHẤT||はら・う
+米|MỄ|べい|こめ
+級|CẤP|きゅう|
+残|TÀN|ざん|のこ・る、のこ・す
+型|HÌNH||かた
+税|THUẾ|ぜい|
+込|(chữ Nhật)||こ・む
+価|GIÁ|か|
+格|CÁCH|かく|
+申|THÂN|しん|もう・す
+記|KÝ|き|
+例|LỆ|れい|たと・えば
+齢|LINH|れい|
+歳|TUẾ|さい|
+性|TÍNH|せい|
+連|LIÊN|れん|つ・れる
+絡|LẠC|らく|
+届|GIỚI||とど・ける、とど・く
+宅|TRẠCH|たく|
+配|PHỐI|はい|くば・る
+希|HI|き|
+望|VỌNG|ぼう|のぞ・む
+荷|HÀ|か|に
+換|HOÁN|かん|か・える
+額|NGẠCH|がく|
+在|TẠI|ざい|
+取|THỦ||と・る
+預|DỰ|よ|あず・ける
+衣|Y|い|
+参|THAM|さん|まい・る
+達|ĐẠT|たつ|
+勤|CẦN|きん|つと・める
+帯|ĐỚI|たい|おび
+礼|LỄ|れい|
+伺|TÝ||うかが・う
+遅|TRÌ|ち|おそ・い、おく・れる
+失|THẤT|しつ|
+汗|HÃN||あせ
+念|NIỆM|ねん|
+涙|LỆ||なみだ
+笑|TIẾU||わら・う、え・む
+調|ĐIỀU|ちょう|しら・べる
+査|TRA|さ|
+移|DI|い|うつ・る、うつ・す
+難|NAN|なん|むずか・しい
+簡|GIẢN|かん|
+単|ĐƠN|たん|
+感|CẢM|かん|
+想|TƯỞNG|そう|
+練|LUYỆN|れん|
+最|TỐI|さい|もっと・も
+適|THÍCH|てき|
+選|TUYỂN|せん|えら・ぶ
+違|VI||ちが・う、ちが・える
+直|TRỰC|ちょく|なお・る、なお・す
+復|PHỤC|ふく|
+辞|TỪ|じ|や・める
+宿|TÚC|しゅく|やど
+昨|TẠC|さく|
+君|QUÂN|くん|きみ
+結|KẾT|けつ|むす・ぶ
+婚|HÔN|こん|
+祝|CHÚC|しゅく|いわ・う
+曲|KHÚC|きょく|ま・がる、ま・げる
+奥|ÁO||おく
+寝|TẨM||ね・る
+痛|THỐNG|つう|いた・い
+熱|NHIỆT|ねつ|あつ・い
+虫|TRÙNG||むし
+歯|XỈ|し|は
+治|TRỊ|じ、ち|なお・る、なお・す
+汚|Ô||よご・れる、きたな・い
+並|TỊNH||なら・ぶ、なら・べる
+他|THA|た|ほか
+身|THÂN|しん|み
+酒|TỬU|しゅ|さけ、さか
+吸|HẤP|きゅう|す・う
+欲|DỤC|よく|ほ・しい
+眠|MIÊN|みん|ねむ・い、ねむ・る
+疲|BÌ||つか・れる
+息|TỨC||いき
+呼|HÔ|こ|よ・ぶ
+報|BÁO|ほう|
+晴|TÌNH||は・れる
+雲|VÂN||くも
+暖|NOÃN|だん|あたた・かい
+雪|TUYẾT||ゆき
+震|CHẤN|しん|
+波|BA|は|なみ
+吹|XÚY||ふ・く
+求|CẦU|きゅう|もと・める
+募|MỘ|ぼ|
+職|CHỨC|しょく|
+容|DUNG|よう|
+技|KỸ|ぎ|
+務|VỤ|む|
+課|KHÓA|か|
+般|BAN|はん|
+球|CẦU|きゅう|
+決|QUYẾT|けつ|き・める、き・まる
+勝|THẮNG|しょう|か・つ
+対|ĐỐI|たい|
+流|LƯU||なが・れる、なが・す
+負|PHỤ|ふ|ま・ける
+投|ĐẦU|とう|な・げる
+果|QUẢ|か|
+戦|CHIẾN|せん|たたか・う
+経|KINH|けい|
+成|THÀNH|せい|
+貿|MẬU|ぼう|
+易|DỊCH / DỊ|えき、い|やさ・しい
+輸|THÂU|ゆ|
+相|TƯƠNG|そう、しょう|あい
+済|TẾ|さい|す・む
+化|HÓA|か、け|
+比|TỶ||くら・べる
+原|NGUYÊN|げん|
+因|NHÂN|いん|
+際|TẾ|さい|
+議|NGHỊ|ぎ|
+活|HOẠT|かつ|
+変|BIẾN|へん|か・わる、か・える
+政|CHÍNH|せい|
+府|PHỦ|ふ|
+改|CẢI|かい|あらた・める
+否|PHỦ|ひ|
+的|ĐÍCH|てき|
+実|THỰC|じつ|
+欠|KHIẾM|けつ|か・ける
+専|CHUYÊN|せん|
+`;
+
+// ===== Câu ví dụ cho từng chữ Hán: Chữ|Câu (từ cần chú ý trong 【】)|Nghĩa =====
+const EX_RAW = `
+駐|ここに【駐車】しないでください。|Xin đừng đỗ xe ở đây.
+無|このサービスは【無料】です。|Dịch vụ này miễn phí.
+満|電車は【満員】で座れなかった。|Tàu chật kín người nên tôi không ngồi được.
+向|駅はあちらの【方向】です。|Nhà ga ở hướng đằng kia.
+禁|ここでの撮影は【禁止】です。|Cấm chụp ảnh ở đây.
+関|日本の文化に【関心】があります。|Tôi quan tâm đến văn hóa Nhật.
+係|それは私と【関係】ない話だ。|Chuyện đó không liên quan đến tôi.
+断|友達の誘いを【断】った。|Tôi đã từ chối lời mời của bạn.
+横|【横断歩道】を渡ってください。|Hãy đi qua vạch qua đường.
+押|このボタンを【押】してください。|Hãy ấn nút này.
+式|来週、【入学式】があります。|Tuần sau có lễ nhập học.
+信|自分を【信】じて頑張ろう。|Hãy tin vào bản thân và cố gắng.
+号|【信号】が青になったら渡ります。|Khi đèn chuyển xanh thì sang đường.
+確|もう一度【確認】してください。|Hãy kiểm tra lại một lần nữa.
+認|彼は自分の間違いを【認】めた。|Anh ấy đã thừa nhận lỗi của mình.
+飛|鳥が空を【飛】んでいる。|Chim đang bay trên trời.
+非|火事のときは【非常口】から出てください。|Khi có cháy hãy ra bằng lối thoát hiểm.
+常|検査の結果は【正常】でした。|Kết quả xét nghiệm bình thường.
+階|トイレは2【階】にあります。|Nhà vệ sinh ở tầng 2.
+段|【階段】で転ばないように気をつけて。|Cẩn thận đừng ngã ở cầu thang.
+箱|ごみはごみ【箱】に捨ててください。|Hãy vứt rác vào thùng rác.
+危|道で遊ぶのは【危】ないよ。|Chơi ngoài đường nguy hiểm đấy.
+険|この川で泳ぐのは【危険】です。|Bơi ở con sông này rất nguy hiểm.
+捨|空き缶をここに【捨】てないでください。|Đừng vứt lon rỗng ở đây.
+線|3番【線】の電車に乗ってください。|Hãy lên tàu ở đường ray số 3.
+面|パソコンの【画面】が暗い。|Màn hình máy tính bị tối.
+普|【普通】電車は各駅に止まります。|Tàu thường dừng ở mọi ga.
+各|この電車は【各駅】に止まります。|Tàu này dừng ở mọi ga.
+次|【次】の駅で降ります。|Tôi xuống ở ga tiếp theo.
+快|【快速】電車に乗れば早く着きます。|Đi tàu nhanh thì sẽ đến sớm.
+速|この車は【速】いですね。|Chiếc xe này nhanh nhỉ.
+過|もう10時を【過】ぎました。|Đã quá 10 giờ rồi.
+鉄|【地下鉄】で会社に行きます。|Tôi đi làm bằng tàu điện ngầm.
+指|【指定席】を予約しました。|Tôi đã đặt ghế chỉ định.
+定|あの店は月曜日が【定休日】です。|Cửa hàng đó nghỉ định kỳ vào thứ Hai.
+席|会議に【出席】します。|Tôi sẽ tham dự cuộc họp.
+由|遅れた【理由】を説明してください。|Hãy giải thích lý do đến muộn.
+番|電話【番号】を教えてください。|Cho tôi biết số điện thoại.
+窓|【窓】を開けてもいいですか。|Tôi mở cửa sổ được không?
+側|道の【右側】を歩いてください。|Hãy đi bên phải đường.
+路|【通路】に荷物を置かないでください。|Đừng để hành lý ở lối đi.
+停|【バス停】で友達を待っています。|Tôi đang đợi bạn ở bến xe buýt.
+整|机の上を【整理】しましょう。|Hãy sắp xếp lại trên bàn.
+券|【乗車券】を買ってください。|Hãy mua vé lên tàu.
+現|【現金】で払います。|Tôi trả bằng tiền mặt.
+両|【両親】と一緒に住んでいます。|Tôi sống cùng bố mẹ.
+替|空港でお金を【両替】した。|Tôi đã đổi tiền ở sân bay.
+優|お年寄りに【優先席】を譲りましょう。|Hãy nhường ghế ưu tiên cho người già.
+座|どうぞ、こちらに【座】ってください。|Mời ngồi ở đây.
+降|次の駅で電車を【降】ります。|Tôi xuống tàu ở ga tiếp theo.
+準|旅行の【準備】をしています。|Tôi đang chuẩn bị cho chuyến du lịch.
+備|地震に【備】えて水を買っておく。|Mua sẵn nước để phòng động đất.
+営|この店は夜10時まで【営業】しています。|Cửa hàng này mở cửa đến 10 giờ tối.
+閉|ドアを【閉】めてください。|Hãy đóng cửa lại.
+案|駅まで【案内】しましょうか。|Để tôi dẫn đường đến ga nhé?
+内|30分【以内】に戻ります。|Tôi sẽ quay lại trong vòng 30 phút.
+予|週末の【予定】はありますか。|Cuối tuần bạn có dự định gì không?
+約|レストランを【予約】しました。|Tôi đã đặt bàn nhà hàng.
+煙|店内は全席【禁煙】です。|Trong quán cấm hút thuốc ở mọi chỗ ngồi.
+当|それは【本当】ですか。|Điều đó có thật không?
+全|宿題は【全部】終わった。|Bài tập đã xong hết rồi.
+客|【お客様】、こちらへどうぞ。|Mời quý khách đi lối này.
+様|彼の【様子】が少し変だ。|Dáng vẻ anh ấy hơi lạ.
+解|先生の説明がよく【理解】できた。|Tôi hiểu rõ lời giải thích của thầy.
+協|ご【協力】ありがとうございます。|Cảm ơn sự hợp tác của quý vị.
+願|みんなの幸せを【願】っています。|Tôi mong mọi người hạnh phúc.
+観|京都へ【観光】に行きました。|Tôi đã đi tham quan Kyoto.
+園|子どもと【動物園】に行った。|Tôi đi sở thú với con.
+港|【空港】まで電車で1時間です。|Đến sân bay mất 1 tiếng đi tàu.
+遊|公園で子どもたちが【遊】んでいる。|Bọn trẻ đang chơi ở công viên.
+美|富士山はとても【美】しい。|Núi Phú Sĩ rất đẹp.
+術|父は来週【手術】を受けます。|Tuần sau bố tôi sẽ phẫu thuật.
+神|お正月に【神社】へ行きます。|Dịp Tết tôi đi đền.
+寺|京都には古い【お寺】がたくさんある。|Ở Kyoto có nhiều chùa cổ.
+役|この辞書はとても【役】に立つ。|Cuốn từ điển này rất có ích.
+郵|【郵便局】で切手を買った。|Tôi mua tem ở bưu điện.
+局|【薬局】で風邪薬を買った。|Tôi mua thuốc cảm ở nhà thuốc.
+交|道が分からなければ【交番】で聞いてください。|Nếu không biết đường hãy hỏi ở đồn cảnh sát.
+差|東京と大阪の気温の【差】は小さい。|Chênh lệch nhiệt độ giữa Tokyo và Osaka nhỏ.
+点|次の【交差点】を右に曲がってください。|Hãy rẽ phải ở ngã tư tiếp theo.
+橋|この【橋】を渡ると駅です。|Qua cây cầu này là đến ga.
+公|日曜日に【公園】を散歩した。|Chủ nhật tôi đi dạo công viên.
+受|来月、日本語の試験を【受】けます。|Tháng sau tôi sẽ thi tiếng Nhật.
+付|部屋を【片付】けなさい。|Dọn phòng đi.
+科|足をけがして【外科】に行った。|Tôi bị thương ở chân nên đi khám ngoại khoa.
+鼻|風邪で【鼻】水が出る。|Bị cảm nên chảy nước mũi.
+婦|母は【主婦】です。|Mẹ tôi là nội trợ.
+形|この【人形】はかわいいですね。|Con búp bê này dễ thương nhỉ.
+骨|スキーで足の【骨】を折った。|Tôi bị gãy xương chân khi trượt tuyết.
+折|子どもと【折り紙】で鶴を作った。|Tôi gấp hạc giấy với con.
+困|財布をなくして【困】っています。|Tôi bị mất ví nên đang khốn đốn.
+消|部屋を出るときは電気を【消】してください。|Khi ra khỏi phòng hãy tắt điện.
+防|手を洗って風邪を【予防】しましょう。|Hãy rửa tay để phòng cảm.
+救|すぐに【救急車】を呼んでください。|Hãy gọi xe cứu thương ngay.
+警|財布を拾って【警察】に届けた。|Tôi nhặt được ví và mang đến cảnh sát.
+察|【警察署】はどこですか。|Sở cảnh sát ở đâu?
+故|この道は【事故】が多い。|Con đường này hay xảy ra tai nạn.
+伝|田中さんに【伝言】をお願いします。|Nhờ anh nhắn lại cho anh Tanaka.
+要|入国にはパスポートが【必要】です。|Nhập cảnh cần có hộ chiếu.
+冷|【冷】たい水が飲みたい。|Tôi muốn uống nước lạnh.
+凍|冬は池の水が【凍】る。|Mùa đông nước hồ đóng băng.
+庫|肉は【冷凍庫】に入れてください。|Hãy cho thịt vào ngăn đông.
+召|どうぞ【召し上が】ってください。|Mời anh dùng.
+保|このファイルを【保存】してください。|Hãy lưu tập tin này.
+存|山田さんを【ご存じ】ですか。|Anh có biết anh Yamada không?
+必|明日は【必】ず来てください。|Ngày mai nhất định hãy đến.
+蔵|牛乳を【冷蔵庫】に入れた。|Tôi cho sữa vào tủ lạnh.
+費|旅行の【費用】はいくらですか。|Chi phí du lịch là bao nhiêu?
+期|【定期券】で通学しています。|Tôi đi học bằng vé tháng.
+限|この券の【期限】は今月末です。|Hạn của vé này là cuối tháng.
+製|これは日本【製】の時計です。|Đây là đồng hồ sản xuất tại Nhật.
+造|この工場で車を【製造】している。|Nhà máy này sản xuất ô tô.
+賞|【賞味期限】を確認してから食べてください。|Hãy xem hạn sử dụng rồi mới ăn.
+法|いい勉強【方法】を教えてください。|Chỉ cho tôi phương pháp học hay.
+温|今日は【気温】が高い。|Hôm nay nhiệt độ cao.
+材|カレーの【材料】を買いに行く。|Tôi đi mua nguyên liệu làm cà ri.
+卵|毎朝【卵】を一つ食べます。|Mỗi sáng tôi ăn một quả trứng.
+乳|毎朝【牛乳】を飲みます。|Mỗi sáng tôi uống sữa.
+粉|【小麦粉】でパンを作る。|Làm bánh mì bằng bột mì.
+袋|【袋】はいりません。|Tôi không cần túi.
+混|朝の電車はとても【混雑】している。|Tàu buổi sáng rất đông.
+焼|魚を【焼】いて食べた。|Tôi nướng cá ăn.
+表|明日、授業で【発表】します。|Mai tôi thuyết trình trong giờ học.
+裏|紙の【裏】に名前を書いてください。|Hãy viết tên ở mặt sau tờ giấy.
+留|来年、日本に【留学】します。|Năm sau tôi sẽ du học Nhật.
+守|約束は【守】ってください。|Hãy giữ lời hứa.
+濃|このコーヒーは【濃】すぎる。|Cà phê này đậm quá.
+薄|この本は【薄】くて軽い。|Cuốn sách này mỏng và nhẹ.
+部|私の【部屋】は2階です。|Phòng tôi ở tầng 2.
+数|【数学】が苦手です。|Tôi kém môn toán.
+件|メールの【件名】を書いてください。|Hãy ghi tiêu đề email.
+再|【再来週】、国に帰ります。|Tuần sau nữa tôi về nước.
+接|明日は会社の【面接】がある。|Ngày mai tôi có buổi phỏng vấn ở công ty.
+続|雨の日が【続】いている。|Trời mưa liên tục mấy ngày nay.
+示|画面にエラーが【表示】された。|Trên màn hình hiện lỗi.
+戻|5時までに会社に【戻】ります。|Tôi sẽ về lại công ty trước 5 giờ.
+完|ダウンロードが【完了】しました。|Đã tải xuống xong.
+了|【了解】しました。|Tôi hiểu rồi.
+登|夏休みに富士山に【登】った。|Nghỉ hè tôi đã leo núi Phú Sĩ.
+録|会議を【録音】してもいいですか。|Tôi ghi âm cuộc họp được không?
+砂|コーヒーに【砂糖】を入れますか。|Anh có cho đường vào cà phê không?
+塩|スープに【塩】を少し入れてください。|Hãy cho chút muối vào súp.
+油|フライパンに【油】をひく。|Cho dầu vào chảo.
+緑|【緑茶】は体にいい。|Trà xanh tốt cho sức khỏe.
+紅|【紅茶】にミルクを入れます。|Tôi cho sữa vào hồng trà.
+冊|図書館で本を3【冊】借りた。|Tôi mượn 3 quyển sách ở thư viện.
+個|りんごを5【個】ください。|Cho tôi 5 quả táo.
+枚|切手を2【枚】ください。|Cho tôi 2 con tem.
+告|新聞に【広告】を出す。|Đăng quảng cáo lên báo.
+利|このアプリはとても【便利】だ。|Ứng dụng này rất tiện.
+割|全品20%【割引】です。|Tất cả sản phẩm giảm 20%.
+倍|値段が2【倍】になった。|Giá đã tăng gấp đôi.
+値|この服の【値段】はいくらですか。|Bộ đồ này giá bao nhiêu?
+商|新しい【商品】が入りました。|Có hàng mới về.
+支|兄は銀行の【支店】で働いている。|Anh tôi làm ở chi nhánh ngân hàng.
+払|カードで【払】ってもいいですか。|Tôi trả bằng thẻ được không?
+米|日本人は【米】をよく食べる。|Người Nhật hay ăn gạo.
+級|日本語の【中級】クラスに入った。|Tôi vào lớp tiếng Nhật trung cấp.
+残|今日は【残業】があります。|Hôm nay tôi phải làm thêm giờ.
+型|【大型】のテレビを買った。|Tôi đã mua tivi cỡ lớn.
+税|この値段は【税込】です。|Giá này đã gồm thuế.
+込|月曜日の朝は電車が【込】む。|Sáng thứ Hai tàu đông.
+価|この店は【価格】が安い。|Cửa hàng này giá rẻ.
+格|試験に【合格】しました。|Tôi đã thi đỗ.
+申|日本語能力試験に【申し込】んだ。|Tôi đã đăng ký thi năng lực tiếng Nhật.
+記|毎日【日記】を書いています。|Ngày nào tôi cũng viết nhật ký.
+例|【例】えば、すしや天ぷらが好きです。|Ví dụ như tôi thích sushi và tempura.
+齢|ここに【年齢】を書いてください。|Hãy viết tuổi vào đây.
+歳|弟は今年10【歳】です。|Em trai tôi năm nay 10 tuổi.
+性|彼は明るい【性格】だ。|Anh ấy có tính cách vui vẻ.
+連|5月に【連休】があります。|Tháng 5 có kỳ nghỉ dài.
+絡|着いたら【連絡】してください。|Đến nơi thì liên lạc nhé.
+届|荷物が【届】きました。|Hàng đã đến rồi.
+宅|【宅配】便で荷物を送った。|Tôi gửi hàng bằng dịch vụ giao tận nhà.
+配|母はいつも私のことを【心配】している。|Mẹ lúc nào cũng lo cho tôi.
+希|【希望】の日を教えてください。|Hãy cho biết ngày bạn mong muốn.
+望|彼は平和を【望】んでいる。|Anh ấy mong muốn hòa bình.
+荷|【荷物】を預けたいです。|Tôi muốn gửi hành lý.
+換|次の駅で【乗り換え】ます。|Tôi đổi tàu ở ga tiếp theo.
+額|今日は全品【半額】です。|Hôm nay tất cả hàng giảm nửa giá.
+在|【現在】、東京に住んでいます。|Hiện tại tôi sống ở Tokyo.
+取|荷物を【受け取】りました。|Tôi đã nhận hàng.
+預|ホテルに荷物を【預】けた。|Tôi gửi hành lý ở khách sạn.
+衣|【衣類】は洗濯してから送ってください。|Quần áo hãy giặt rồi mới gửi.
+参|パーティーに【参加】しますか。|Bạn có tham gia bữa tiệc không?
+達|【友達】と映画を見た。|Tôi xem phim với bạn.
+勤|父は銀行に【勤】めています。|Bố tôi làm việc ở ngân hàng.
+帯|【携帯】を忘れてしまった。|Tôi quên điện thoại mất rồi.
+礼|先生にお【礼】を言った。|Tôi đã cảm ơn thầy.
+伺|明日、お宅に【伺】います。|Ngày mai tôi sẽ đến thăm nhà anh.
+遅|電車が【遅】れています。|Tàu đang bị trễ.
+失|お先に【失礼】します。|Tôi xin phép về trước.
+汗|走ったので【汗】をかいた。|Vì chạy nên tôi đổ mồ hôi.
+念|行けなくて【残念】です。|Không đi được thật tiếc.
+涙|映画を見て【涙】が出た。|Xem phim mà tôi rơi nước mắt.
+笑|彼女はいつも【笑顔】だ。|Cô ấy lúc nào cũng tươi cười.
+調|辞書で言葉を【調】べる。|Tra từ bằng từ điển.
+査|警察が事故を【調査】している。|Cảnh sát đang điều tra vụ tai nạn.
+移|会議室を3階に【移】しました。|Đã chuyển phòng họp lên tầng 3.
+難|この問題は【難】しい。|Bài này khó.
+簡|このテストは【簡単】だった。|Bài kiểm tra này dễ.
+単|毎日【単語】を10個覚える。|Mỗi ngày tôi nhớ 10 từ vựng.
+感|この映画に【感動】した。|Tôi đã cảm động vì bộ phim này.
+想|旅行の【感想】を聞かせてください。|Kể cho tôi cảm nghĩ về chuyến đi nhé.
+練|毎日ピアノを【練習】します。|Mỗi ngày tôi luyện đàn piano.
+最|【最近】、忙しいです。|Gần đây tôi bận.
+適|【適当】な言葉が見つからない。|Tôi không tìm được từ thích hợp.
+選|好きな色を【選】んでください。|Hãy chọn màu bạn thích.
+違|答えが【違】います。|Câu trả lời sai rồi.
+直|間違いを【直】してください。|Hãy sửa chỗ sai.
+復|家で【復習】しましょう。|Hãy ôn bài ở nhà.
+辞|分からない言葉は【辞書】で調べる。|Từ nào không biết thì tra từ điển.
+宿|【宿題】を忘れました。|Tôi quên bài tập về nhà.
+昨|【昨年】、日本に来ました。|Năm ngoái tôi đến Nhật.
+君|【君】の名前は何?|Tên cậu là gì?
+結|【結局】、旅行に行かなかった。|Rốt cuộc tôi đã không đi du lịch.
+婚|姉は来月【結婚】します。|Chị tôi tháng sau kết hôn.
+祝|友達の誕生日を【祝】った。|Tôi đã chúc mừng sinh nhật bạn.
+曲|次の角を左に【曲】がってください。|Hãy rẽ trái ở góc tiếp theo.
+奥|【奥さん】はお元気ですか。|Vợ anh có khỏe không?
+寝|【寝坊】して遅刻した。|Tôi ngủ quên nên đến muộn.
+痛|頭が【痛】いです。|Tôi đau đầu.
+熱|【熱】があるので休みます。|Tôi bị sốt nên xin nghỉ.
+虫|【虫歯】が痛い。|Răng sâu bị đau.
+歯|毎日【歯】を磨きます。|Mỗi ngày tôi đánh răng.
+治|早く風邪を【治】してね。|Mau khỏi cảm nhé.
+汚|手が【汚】れたので洗った。|Tay bị bẩn nên tôi rửa.
+並|店の前に人が【並】んでいる。|Người ta đang xếp hàng trước cửa hàng.
+他|【他】の色はありますか。|Có màu khác không?
+身|【身長】はどのくらいですか。|Chiều cao của bạn bao nhiêu?
+酒|【お酒】は飲めません。|Tôi không uống được rượu.
+吸|ここでたばこを【吸】わないでください。|Đừng hút thuốc ở đây.
+欲|新しいパソコンが【欲】しい。|Tôi muốn có máy tính mới.
+眠|昨日あまり寝ていないので【眠】い。|Hôm qua ngủ ít nên giờ buồn ngủ.
+疲|今日はとても【疲】れました。|Hôm nay tôi rất mệt.
+息|走ったので【息】が苦しい。|Chạy xong nên tôi khó thở.
+呼|タクシーを【呼】んでください。|Hãy gọi taxi giúp tôi.
+報|天気【予報】によると明日は雨だ。|Theo dự báo thời tiết, mai trời mưa.
+晴|明日は【晴】れるでしょう。|Ngày mai có lẽ trời nắng.
+雲|空に【雲】が一つもない。|Trên trời không có lấy một đám mây.
+暖|今日は【暖】かいですね。|Hôm nay ấm nhỉ.
+雪|北海道は【雪】が多い。|Hokkaido có nhiều tuyết.
+震|昨日の夜、【地震】があった。|Tối qua có động đất.
+波|今日は海の【波】が高い。|Hôm nay sóng biển cao.
+吹|強い風が【吹】いている。|Gió mạnh đang thổi.
+求|この会社はエンジニアを【求】めている。|Công ty này đang tìm kỹ sư.
+募|アルバイトを【募集】しています。|Đang tuyển nhân viên làm thêm.
+職|【職場】の人はみんな親切だ。|Người ở chỗ làm ai cũng tốt bụng.
+容|メールの【内容】を確認した。|Tôi đã kiểm tra nội dung email.
+技|日本の【技術】を学びたい。|Tôi muốn học kỹ thuật của Nhật.
+務|兄は【公務員】です。|Anh tôi là công chức.
+課|【課長】は今、会議中です。|Trưởng nhóm đang họp.
+般|これは【一般】の人も使えます。|Cái này người bình thường cũng dùng được.
+球|【野球】の試合を見に行く。|Tôi đi xem trận bóng chày.
+決|旅行の日を【決】めましょう。|Hãy quyết định ngày đi du lịch.
+勝|私たちのチームが【勝】った。|Đội chúng tôi đã thắng.
+対|私はその計画に【反対】です。|Tôi phản đối kế hoạch đó.
+流|川の水がきれいに【流】れている。|Nước sông chảy trong veo.
+負|試合に【負】けて悔しい。|Thua trận nên tôi rất tiếc.
+投|ボールを【投】げてください。|Hãy ném bóng đi.
+果|試験の【結果】はいつ出ますか。|Khi nào có kết quả thi?
+戦|【戦争】のない世界がいい。|Một thế giới không có chiến tranh thì tốt.
+経|アルバイトの【経験】がありますか。|Bạn có kinh nghiệm làm thêm không?
+成|子どもの【成長】は早い。|Trẻ con lớn nhanh.
+貿|父は【貿易】の会社で働いている。|Bố tôi làm ở công ty xuất nhập khẩu.
+易|この本は【易】しい日本語で書いてある。|Cuốn sách này viết bằng tiếng Nhật dễ.
+輸|日本は車を【輸出】している。|Nhật Bản xuất khẩu ô tô.
+相|困ったら先生に【相談】してください。|Nếu gặp khó khăn hãy bàn với thầy.
+済|食事はもう【済】みましたか。|Anh ăn xong chưa?
+化|日本の【文化】に興味がある。|Tôi có hứng thú với văn hóa Nhật.
+比|去年と【比】べて今年は暑い。|So với năm ngoái thì năm nay nóng hơn.
+原|この料理の【原料】は米です。|Nguyên liệu của món này là gạo.
+因|事故の【原因】を調べている。|Đang điều tra nguyên nhân tai nạn.
+際|【国際】電話をかけたい。|Tôi muốn gọi điện quốc tế.
+議|午後から【会議】があります。|Từ chiều có cuộc họp.
+活|日本の【生活】に慣れましたか。|Bạn quen cuộc sống ở Nhật chưa?
+変|予定が【変】わりました。|Kế hoạch đã thay đổi.
+政|【政治】のニュースをよく見る。|Tôi hay xem tin tức chính trị.
+府|【政府】は新しい法律を作った。|Chính phủ đã làm luật mới.
+改|【改札口】で待っています。|Tôi đợi ở cửa soát vé.
+否|彼はそのうわさを【否定】した。|Anh ấy đã phủ nhận tin đồn đó.
+的|日本に来た【目的】は何ですか。|Mục đích bạn đến Nhật là gì?
+実|【実】は、明日国に帰ります。|Thật ra, mai tôi về nước.
+欠|彼の【欠点】は時間を守らないことだ。|Khuyết điểm của anh ấy là không đúng giờ.
+専|大学での【専門】は何ですか。|Chuyên ngành của bạn ở đại học là gì?
+`;
+
+// ===== Từ vựng: #tuần-ngày, rồi Từ|Cách đọc|Hán Việt|Nghĩa =====
+const RAW = `
+#1-1
+駐車|ちゅうしゃ|TRÚ XA|Đỗ xe
+駐車場|ちゅうしゃじょう|TRÚ XA TRƯỜNG|Bãi đỗ xe
+無休|むきゅう|VÔ HƯU|Không có ngày nghỉ
+無料|むりょう|VÔ LIỆU|Miễn phí
+無理|むり|VÔ LÝ|Vô lý, quá sức
+無い|ない|VÔ|Không có
+満車|まんしゃ|MÃN XA|Đầy xe
+満員|まんいん|MÃN VIÊN|Đầy người
+不満|ふまん|BẤT MÃN|Bất mãn
+方向|ほうこう|PHƯƠNG HƯỚNG|Phương hướng
+向こう|むこう|HƯỚNG|Phía bên kia
+向かう|むかう|HƯỚNG|Hướng về
+向き|むき|HƯỚNG|Phù hợp, dành cho
+禁止|きんし|CẤM CHỈ|Cấm
+関心|かんしん|QUAN TÂM|Quan tâm
+関する|かんする|QUAN|Có liên quan
+関係|かんけい|QUAN HỆ|Quan hệ
+係|かかり|HỆ|Người phụ trách
+無断|むだん|VÔ ĐOẠN|Tự ý, không xin phép
+断水|だんすい|ĐOẠN THỦY|Cắt nước
+断る|ことわる|ĐOẠN|Từ chối
+#1-2
+横断|おうだん|HOÀNH ĐOẠN|Băng qua (đường)
+横断歩道|おうだんほどう|HOÀNH ĐOẠN BỘ ĐẠO|Vạch qua đường
+横|よこ|HOÀNH|Bên cạnh, bề ngang
+押す|おす|ÁP|Ấn, đẩy
+押さえる|おさえる|ÁP|Ấn giữ
+押し入れ|おしいれ|ÁP NHẬP|Tủ âm tường
+押しボタン式|おしボタンしき|ÁP THỨC|Loại nút bấm (đèn qua đường)
+入学式|にゅうがくしき|NHẬP HỌC THỨC|Lễ nhập học
+数式|すうしき|SỐ THỨC|Công thức toán
+送信|そうしん|TỐNG TÍN|Gửi tin
+信じる|しんじる|TÍN|Tin tưởng
+自信|じしん|TỰ TÍN|Tự tin
+信用|しんよう|TÍN DỤNG|Tín nhiệm
+信号|しんごう|TÍN HIỆU|Đèn tín hiệu
+号車|ごうしゃ|HIỆU XA|Toa số...
+正確|せいかく|CHÍNH XÁC|Chính xác
+確かめる|たしかめる|XÁC|Xác nhận
+確か|たしか|XÁC|Chắc chắn, hình như
+確認|かくにん|XÁC NHẬN|Xác nhận
+認める|みとめる|NHẬN|Thừa nhận
+飛行場|ひこうじょう|PHI HÀNH TRƯỜNG|Sân bay
+飛ぶ|とぶ|PHI|Bay
+#1-3
+非常|ひじょう|PHI THƯỜNG|Khẩn cấp
+非常に|ひじょうに|PHI THƯỜNG|Rất
+非常口|ひじょうぐち|PHI THƯỜNG KHẨU|Lối thoát hiểm
+日常|にちじょう|NHẬT THƯỜNG|Thường ngày
+正常|せいじょう|CHÍNH THƯỜNG|Bình thường
+〜階|かい|GIAI|Tầng...
+階段|かいだん|GIAI ĐOẠN|Cầu thang
+箱|はこ|TƯƠNG|Hộp
+ごみ箱|ごみばこ|TƯƠNG|Thùng rác
+危険|きけん|NGUY HIỂM|Nguy hiểm
+危ない|あぶない|NGUY|Nguy hiểm
+捨てる|すてる|XẢ|Vứt bỏ
+#1-4
+線|せん|TUYẾN|Đường, tuyến
+〜番線|ばんせん|PHIÊN TUYẾN|Đường ray số...
+全面|ぜんめん|TOÀN DIỆN|Toàn bộ
+画面|がめん|HỌA DIỆN|Màn hình
+方面|ほうめん|PHƯƠNG DIỆN|Hướng, phía
+普通|ふつう|PHỔ THÔNG|Thông thường
+各駅|かくえき|CÁC DỊCH|Mỗi ga
+各国|かっこく|CÁC QUỐC|Các nước
+各自|かくじ|CÁC TỰ|Mỗi người
+目次|もくじ|MỤC THỨ|Mục lục
+次回|じかい|THỨ HỒI|Lần tới
+次|つぎ|THỨ|Tiếp theo
+快速|かいそく|KHOÁI TỐC|Tàu nhanh
+高速道路|こうそくどうろ|CAO TỐC ĐẠO LỘ|Đường cao tốc
+速度|そくど|TỐC ĐỘ|Tốc độ
+速い|はやい|TỐC|Nhanh
+通過|つうか|THÔNG QUÁ|Đi qua
+過去|かこ|QUÁ KHỨ|Quá khứ
+過ぎる|すぎる|QUÁ|Quá, vượt qua
+地下鉄|ちかてつ|ĐỊA HẠ THIẾT|Tàu điện ngầm
+鉄道|てつどう|THIẾT ĐẠO|Đường sắt
+鉄|てつ|THIẾT|Sắt
+#1-5
+指定|してい|CHỈ ĐỊNH|Chỉ định
+指定席|していせき|CHỈ ĐỊNH TỊCH|Ghế chỉ định
+指|ゆび|CHỈ|Ngón tay
+指輪|ゆびわ|CHỈ LUÂN|Nhẫn
+定休日|ていきゅうび|ĐỊNH HƯU NHẬT|Ngày nghỉ định kỳ
+安定|あんてい|AN ĐỊNH|Ổn định
+不安定|ふあんてい|BẤT AN ĐỊNH|Không ổn định
+席|せき|TỊCH|Ghế
+出席|しゅっせき|XUẤT TỊCH|Có mặt
+欠席|けっせき|KHIẾM TỊCH|Vắng mặt
+自由|じゆう|TỰ DO|Tự do
+自由席|じゆうせき|TỰ DO TỊCH|Ghế tự do
+理由|りゆう|LÝ DO|Lý do
+番号|ばんごう|PHIÊN HIỆU|Số
+〜番|ばん|PHIÊN|Số...
+窓|まど|SONG|Cửa sổ
+窓口|まどぐち|SONG KHẨU|Quầy giao dịch
+両側|りょうがわ|LƯỠNG TRẮC|Hai bên
+窓側|まどがわ|SONG TRẮC|Phía cửa sổ
+右側|みぎがわ|HỮU TRẮC|Bên phải
+通路|つうろ|THÔNG LỘ|Lối đi
+道路|どうろ|ĐẠO LỘ|Con đường
+線路|せんろ|TUYẾN LỘ|Đường ray
+#1-6
+停車|ていしゃ|ĐÌNH XA|Dừng xe
+バス停|バスてい|ĐÌNH|Bến xe buýt
+整理|せいり|CHỈNH LÝ|Sắp xếp
+整理券|せいりけん|CHỈNH LÝ KHOÁN|Vé số thứ tự
+駐車券|ちゅうしゃけん|TRÚ XA KHOÁN|Vé đỗ xe
+乗車券|じょうしゃけん|THỪA XA KHOÁN|Vé lên tàu xe
+回数券|かいすうけん|HỒI SỐ KHOÁN|Tập vé
+現金|げんきん|HIỆN KIM|Tiền mặt
+表現|ひょうげん|BIỂU HIỆN|Biểu hiện
+現れる|あらわれる|HIỆN|Xuất hiện
+両親|りょうしん|LƯỠNG THÂN|Bố mẹ
+〜両|りょう|LƯỠNG|Toa (tàu)
+取り替える|とりかえる|THỦ THẾ|Đổi
+両替|りょうがえ|LƯỠNG THẾ|Đổi tiền
+着替える|きがえる|TRƯỚC THẾ|Thay quần áo
+優先席|ゆうせんせき|ƯU TIÊN TỊCH|Ghế ưu tiên
+女優|じょゆう|NỮ ƯU|Nữ diễn viên
+優しい|やさしい|ƯU|Dịu dàng
+座席|ざせき|TỌA TỊCH|Chỗ ngồi
+正座|せいざ|CHÍNH TỌA|Ngồi quỳ kiểu Nhật
+座る|すわる|TỌA|Ngồi
+降車口|こうしゃぐち|GIÁNG XA KHẨU|Cửa xuống xe
+以降|いこう|DĨ GIÁNG|Từ... trở đi
+降りる|おりる|GIÁNG|Xuống (xe)
+降る|ふる|GIÁNG|Rơi (mưa, tuyết)
+#2-1
+準備|じゅんび|CHUẨN BỊ|Chuẩn bị
+備える|そなえる|BỊ|Chuẩn bị, phòng bị
+営業|えいぎょう|DOANH NGHIỆP|Kinh doanh
+開閉|かいへい|KHAI BẾ|Đóng mở
+閉まる|しまる|BẾ|Đóng (tự động từ)
+閉める|しめる|BẾ|Đóng (tha động từ)
+案内|あんない|ÁN NỘI|Hướng dẫn
+案|あん|ÁN|Đề án
+家内|かない|GIA NỘI|Vợ (mình)
+以内|いない|DĨ NỘI|Trong vòng
+内側|うちがわ|NỘI TRẮC|Phía trong
+国内|こくない|QUỐC NỘI|Trong nước
+予定|よてい|DỰ ĐỊNH|Dự định
+予習|よしゅう|DỰ TẬP|Học trước bài
+予約|よやく|DỰ ƯỚC|Đặt trước
+約〜|やく|ƯỚC|Khoảng
+#2-2
+禁煙|きんえん|CẤM YÊN|Cấm hút thuốc
+煙|けむり|YÊN|Khói
+本当|ほんとう|BẢN ĐƯƠNG|Thật
+当たる|あたる|ĐƯƠNG|Trúng
+当たり前|あたりまえ|ĐƯƠNG TIỀN|Đương nhiên
+全部|ぜんぶ|TOÀN BỘ|Toàn bộ
+全席|ぜんせき|TOÀN TỊCH|Tất cả ghế
+安全|あんぜん|AN TOÀN|An toàn
+客|きゃく|KHÁCH|Khách
+お客様|おきゃくさま|KHÁCH DẠNG|Quý khách
+様子|ようす|DẠNG TỬ|Tình trạng
+理解|りかい|LÝ GIẢI|Hiểu
+解説|かいせつ|GIẢI THUYẾT|Giải thích
+解答|かいとう|GIẢI ĐÁP|Đáp án
+分解|ぶんかい|PHÂN GIẢI|Tháo rời
+協力|きょうりょく|HIỆP LỰC|Hợp tác
+願う|ねがう|NGUYỆN|Mong muốn
+#2-3
+観光|かんこう|QUAN QUANG|Tham quan
+観客|かんきゃく|QUAN KHÁCH|Khán giả
+動物園|どうぶつえん|ĐỘNG VẬT VIÊN|Sở thú
+空港|くうこう|KHÔNG CẢNG|Sân bay
+港|みなと|CẢNG|Cảng
+遊園地|ゆうえんち|DU VIÊN ĐỊA|Khu vui chơi
+遊ぶ|あそぶ|DU|Chơi
+美術館|びじゅつかん|MỸ THUẬT QUÁN|Bảo tàng mỹ thuật
+美人|びじん|MỸ NHÂN|Người đẹp
+美しい|うつくしい|MỸ|Đẹp
+美術|びじゅつ|MỸ THUẬT|Mỹ thuật
+技術|ぎじゅつ|KỸ THUẬT|Kỹ thuật
+手術|しゅじゅつ|THỦ THUẬT|Phẫu thuật
+神社|じんじゃ|THẦN XÃ|Đền thờ
+神経質|しんけいしつ|THẦN KINH CHẤT|Nhạy cảm, hay lo
+神様|かみさま|THẦN DẠNG|Thần
+お寺|おてら|TỰ|Chùa
+#2-4
+市役所|しやくしょ|THỊ DỊCH SỞ|Tòa thị chính
+役に立つ|やくにたつ|DỊCH LẬP|Có ích
+役員|やくいん|DỊCH VIÊN|Cán bộ
+郵便|ゆうびん|BƯU TIỆN|Bưu chính
+郵便局|ゆうびんきょく|BƯU TIỆN CỤC|Bưu điện
+薬局|やっきょく|DƯỢC CỤC|Nhà thuốc
+交番|こうばん|GIAO PHIÊN|Đồn cảnh sát
+交通|こうつう|GIAO THÔNG|Giao thông
+交換|こうかん|GIAO HOÁN|Trao đổi
+差|さ|SAI|Chênh lệch
+差し出す|さしだす|SAI XUẤT|Đưa ra
+差出人|さしだしにん|SAI XUẤT NHÂN|Người gửi
+交差点|こうさてん|GIAO SAI ĐIỂM|Ngã tư
+点数|てんすう|ĐIỂM SỐ|Điểm số
+歩道橋|ほどうきょう|BỘ ĐẠO KIỀU|Cầu vượt đi bộ
+橋|はし|KIỀU|Cây cầu
+公園|こうえん|CÔNG VIÊN|Công viên
+#2-5
+受信|じゅしん|THỤ TÍN|Nhận tin
+受験|じゅけん|THỤ NGHIỆM|Dự thi
+受ける|うける|THỤ|Nhận, dự (thi)
+付ける|つける|PHÓ|Gắn vào
+片付ける|かたづける|PHIẾN PHÓ|Dọn dẹp
+受付|うけつけ|THỤ PHÓ|Lễ tân
+付く|つく|PHÓ|Dính vào
+科学|かがく|KHOA HỌC|Khoa học
+外科|げか|NGOẠI KHOA|Ngoại khoa
+内科|ないか|NỘI KHOA|Nội khoa
+教科書|きょうかしょ|GIÁO KHOA THƯ|Sách giáo khoa
+耳鼻科|じびか|NHĨ TỴ KHOA|Khoa tai mũi họng
+鼻|はな|TỴ|Mũi
+婦人|ふじん|PHỤ NHÂN|Phụ nữ
+産婦人科|さんふじんか|SẢN PHỤ NHÂN KHOA|Khoa sản
+主婦|しゅふ|CHỦ PHỤ|Nội trợ
+形式|けいしき|HÌNH THỨC|Hình thức
+図形|ずけい|ĐỒ HÌNH|Hình vẽ
+整形外科|せいけいげか|CHỈNH HÌNH NGOẠI KHOA|Khoa chỉnh hình
+人形|にんぎょう|NHÂN HÌNH|Búp bê
+形|かたち|HÌNH|Hình dạng
+骨折|こっせつ|CỐT CHIẾT|Gãy xương
+骨|ほね|CỐT|Xương
+右折|うせつ|HỮU CHIẾT|Rẽ phải
+左折|させつ|TẢ CHIẾT|Rẽ trái
+折る|おる|CHIẾT|Bẻ, gấp
+折り紙|おりがみ|CHIẾT CHỈ|Gấp giấy
+折れる|おれる|CHIẾT|Bị gãy
+#2-6
+困る|こまる|KHỐN|Khó khăn, rắc rối
+消す|けす|TIÊU|Tắt, xóa
+消防|しょうぼう|TIÊU PHÒNG|Cứu hỏa
+消える|きえる|TIÊU|Biến mất, tắt
+消しゴム|けしゴム|TIÊU|Cục tẩy
+予防|よぼう|DỰ PHÒNG|Phòng ngừa
+防ぐ|ふせぐ|PHÒNG|Ngăn chặn
+救急車|きゅうきゅうしゃ|CỨU CẤP XA|Xe cứu thương
+救う|すくう|CỨU|Cứu
+警官|けいかん|CẢNH QUAN|Cảnh sát viên
+警察|けいさつ|CẢNH SÁT|Cảnh sát
+警察署|けいさつしょ|CẢNH SÁT THỰ|Sở cảnh sát
+事故|じこ|SỰ CỐ|Tai nạn
+故障|こしょう|CỐ CHƯỚNG|Hỏng hóc
+伝言|でんごん|TRUYỀN NGÔN|Lời nhắn
+伝える|つたえる|TRUYỀN|Truyền đạt
+手伝う|てつだう|THỦ TRUYỀN|Giúp đỡ
+#3-1
+必要|ひつよう|TẤT YẾU|Cần thiết
+要る|いる|YẾU|Cần
+重要|じゅうよう|TRỌNG YẾU|Quan trọng
+冷房|れいぼう|LÃNH PHÒNG|Máy lạnh
+冷たい|つめたい|LÃNH|Lạnh
+冷やす|ひやす|LÃNH|Làm lạnh
+冷える|ひえる|LÃNH|Lạnh đi
+冷める|さめる|LÃNH|Nguội đi
+冷ます|さます|LÃNH|Làm nguội
+冷凍庫|れいとうこ|LÃNH ĐÔNG KHỐ|Tủ đông
+凍る|こおる|ĐÔNG|Đóng băng
+金庫|きんこ|KIM KHỐ|Két sắt
+車庫|しゃこ|XA KHỐ|Nhà để xe
+召し上がる|めしあがる|TRIỆU THƯỢNG|Ăn (kính ngữ)
+保存|ほぞん|BẢO TỒN|Bảo quản, lưu
+ご存じ|ごぞんじ|TỒN|Biết (kính ngữ)
+存じません|ぞんじません|TỒN|Tôi không biết (khiêm nhường)
+必死|ひっし|TẤT TỬ|Hết sức, liều mạng
+必ず|かならず|TẤT|Nhất định
+冷蔵庫|れいぞうこ|LÃNH TÀNG KHỐ|Tủ lạnh
+#3-2
+費用|ひよう|PHÍ DỤNG|Chi phí
+消費者|しょうひしゃ|TIÊU PHÍ GIẢ|Người tiêu dùng
+旅費|りょひ|LỮ PHÍ|Chi phí đi lại
+会費|かいひ|HỘI PHÍ|Hội phí
+期間|きかん|KỲ GIAN|Thời gian, kỳ
+定期券|ていきけん|ĐỊNH KỲ KHOÁN|Vé tháng
+長期|ちょうき|TRƯỜNG KỲ|Dài hạn
+短期|たんき|ĐOẢN KỲ|Ngắn hạn
+期限|きげん|KỲ HẠN|Kỳ hạn
+限度|げんど|HẠN ĐỘ|Giới hạn
+限る|かぎる|HẠN|Giới hạn
+限定|げんてい|HẠN ĐỊNH|Hạn định
+〜製|せい|CHẾ|Làm bằng, sản xuất tại
+製品|せいひん|CHẾ PHẨM|Sản phẩm
+製造|せいぞう|CHẾ TẠO|Chế tạo
+造る|つくる|TẠO|Chế tạo
+賞|しょう|THƯỞNG|Giải thưởng
+賞味期限|しょうみきげん|THƯỞNG VỊ KỲ HẠN|Hạn dùng ngon nhất
+賞金|しょうきん|THƯỞNG KIM|Tiền thưởng
+賞品|しょうひん|THƯỞNG PHẨM|Phần thưởng
+方法|ほうほう|PHƯƠNG PHÁP|Phương pháp
+文法|ぶんぽう|VĂN PHÁP|Ngữ pháp
+温度|おんど|ÔN ĐỘ|Nhiệt độ
+気温|きおん|KHÍ ÔN|Nhiệt độ không khí
+温かい|あたたかい|ÔN|Ấm
+常温|じょうおん|THƯỜNG ÔN|Nhiệt độ thường
+#3-3
+材料|ざいりょう|TÀI LIỆU|Nguyên liệu
+教材|きょうざい|GIÁO TÀI|Tài liệu giảng dạy
+卵|たまご|NOÃN|Trứng
+卵焼き|たまごやき|NOÃN THIÊU|Trứng cuộn
+牛乳|ぎゅうにゅう|NGƯU NHŨ|Sữa bò
+粉|こな|PHẤN|Bột
+小麦粉|こむぎこ|TIỂU MẠCH PHẤN|Bột mì
+袋|ふくろ|ĐẠI|Túi
+紙袋|かみぶくろ|CHỈ ĐẠI|Túi giấy
+ごみ袋|ごみぶくろ|ĐẠI|Túi rác
+手袋|てぶくろ|THỦ ĐẠI|Găng tay
+足袋|たび|TÚC ĐẠI|Tất mặc với kimono
+混雑|こんざつ|HỖN TẠP|Đông đúc
+混ぜる|まぜる|HỖN|Trộn
+焼く|やく|THIÊU|Nướng
+焼ける|やける|THIÊU|Được nướng, cháy
+表|おもて|BIỂU|Mặt trước
+表面|ひょうめん|BIỂU DIỆN|Bề mặt
+発表|はっぴょう|PHÁT BIỂU|Phát biểu
+代表|だいひょう|ĐẠI BIỂU|Đại diện
+表す|あらわす|BIỂU|Thể hiện
+裏|うら|LÝ|Mặt sau
+裏返す|うらがえす|LÝ PHẢN|Lật ngược
+#3-5
+留学|りゅうがく|LƯU HỌC|Du học
+留守番|るすばん|LƯU THỦ PHIÊN|Trông nhà
+保留|ほりゅう|BẢO LƯU|Bảo lưu
+書留|かきとめ|THƯ LƯU|Thư bảo đảm
+守備|しゅび|THỦ BỊ|Phòng thủ
+留守|るす|LƯU THỦ|Vắng nhà
+守る|まもる|THỦ|Bảo vệ
+濃い|こい|NỒNG|Đậm
+薄い|うすい|BẠC|Nhạt, mỏng
+部分|ぶぶん|BỘ PHẬN|Bộ phận
+学部|がくぶ|HỌC BỘ|Khoa
+部長|ぶちょう|BỘ TRƯỞNG|Trưởng phòng
+部屋|へや|BỘ ỐC|Căn phòng
+数字|すうじ|SỐ TỰ|Chữ số
+数学|すうがく|SỐ HỌC|Toán học
+数|かず|SỐ|Số
+数える|かぞえる|SỐ|Đếm
+件名|けんめい|KIỆN DANH|Tiêu đề
+事件|じけん|SỰ KIỆN|Vụ việc
+用件|ようけん|DỤNG KIỆN|Việc cần
+再入国|さいにゅうこく|TÁI NHẬP QUỐC|Tái nhập cảnh
+再生|さいせい|TÁI SINH|Phát lại, tái sinh
+再来週|さらいしゅう|TÁI LAI CHU|Tuần sau nữa
+#3-6
+接続|せつぞく|TIẾP TỤC|Kết nối
+面接|めんせつ|DIỆN TIẾP|Phỏng vấn
+続く|つづく|TỤC|Tiếp tục (tự động từ)
+続ける|つづける|TỤC|Tiếp tục (tha động từ)
+表示|ひょうじ|BIỂU THỊ|Hiển thị
+指示|しじ|CHỈ THỊ|Chỉ thị
+示す|しめす|THỊ|Chỉ ra
+戻る|もどる|LỆ|Quay lại (tự động từ)
+戻す|もどす|LỆ|Trả lại (tha động từ)
+完了|かんりょう|HOÀN LIỄU|Hoàn tất
+完全|かんぜん|HOÀN TOÀN|Hoàn toàn
+了解|りょうかい|LIỄU GIẢI|Hiểu, đồng ý
+終了|しゅうりょう|CHUNG LIỄU|Kết thúc
+登録|とうろく|ĐĂNG LỤC|Đăng ký
+登山|とざん|ĐĂNG SƠN|Leo núi
+登る|のぼる|ĐĂNG|Leo
+記録|きろく|KÝ LỤC|Ghi chép, kỷ lục
+録音|ろくおん|LỤC ÂM|Ghi âm
+録画|ろくが|LỤC HỌA|Ghi hình
+#4-1
+砂糖|さとう|SA ĐƯỜNG|Đường
+砂|すな|SA|Cát
+食塩|しょくえん|THỰC DIÊM|Muối ăn
+塩|しお|DIÊM|Muối
+しょう油|しょうゆ|DU|Nước tương
+石油|せきゆ|THẠCH DU|Dầu mỏ
+灯油|とうゆ|ĐĂNG DU|Dầu hỏa
+油|あぶら|DU|Dầu
+緑茶|りょくちゃ|LỤC TRÀ|Trà xanh
+緑|みどり|LỤC|Màu xanh lá
+紅茶|こうちゃ|HỒNG TRÀ|Hồng trà
+口紅|くちべに|KHẨU HỒNG|Son môi
+〜冊|さつ|SÁCH|Quyển
+冊数|さっすう|SÁCH SỐ|Số quyển
+〜個|こ|CÁ|Cái
+個数|こすう|CÁ SỐ|Số cái
+個人|こじん|CÁ NHÂN|Cá nhân
+〜枚|まい|MAI|Tờ
+枚数|まいすう|MAI SỐ|Số tờ
+#4-2
+広告|こうこく|QUẢNG CÁO|Quảng cáo
+便利|べんり|TIỆN LỢI|Tiện lợi
+利用|りよう|LỢI DỤNG|Sử dụng
+割る|わる|CÁT|Chia, làm vỡ
+割合|わりあい|CÁT HỢP|Tỷ lệ
+割れる|われる|CÁT|Bị vỡ
+割引|わりびき|CÁT DẪN|Giảm giá
+〜倍|ばい|BỘI|Gấp... lần
+値段|ねだん|TRỊ ĐOẠN|Giá cả
+値上げ|ねあげ|TRỊ THƯỢNG|Tăng giá
+値下げ|ねさげ|TRỊ HẠ|Giảm giá
+商品|しょうひん|THƯƠNG PHẨM|Hàng hóa
+商店|しょうてん|THƯƠNG ĐIẾM|Cửa hàng
+支店|してん|CHI ĐIẾM|Chi nhánh
+本店|ほんてん|BẢN ĐIẾM|Cửa hàng chính
+支社|ししゃ|CHI XÃ|Chi nhánh công ty
+本社|ほんしゃ|BẢN XÃ|Trụ sở chính
+払う|はらう|PHẤT|Trả tiền
+支払い|しはらい|CHI PHẤT|Sự thanh toán
+#4-3
+米国|べいこく|MỄ QUỐC|Nước Mỹ
+米|こめ|MỄ|Gạo
+高級|こうきゅう|CAO CẤP|Cao cấp
+中級|ちゅうきゅう|TRUNG CẤP|Trung cấp
+上級|じょうきゅう|THƯỢNG CẤP|Thượng cấp
+残業|ざんぎょう|TÀN NGHIỆP|Làm thêm giờ
+残り|のこり|TÀN|Phần còn lại
+残る|のこる|TÀN|Còn lại
+残す|のこす|TÀN|Để lại
+大型|おおがた|ĐẠI HÌNH|Cỡ lớn
+小型|こがた|TIỂU HÌNH|Cỡ nhỏ
+新型|しんがた|TÂN HÌNH|Mẫu mới
+消費税|しょうひぜい|TIÊU PHÍ THUẾ|Thuế tiêu dùng
+税金|ぜいきん|THUẾ KIM|Tiền thuế
+込む|こむ||Đông đúc
+振り込む|ふりこむ|CHẤN|Chuyển khoản
+税込|ぜいこみ|THUẾ|Đã gồm thuế
+価格|かかく|GIÁ CÁCH|Giá cả
+定価|ていか|ĐỊNH GIÁ|Giá niêm yết
+合格|ごうかく|HỢP CÁCH|Thi đỗ
+格安|かくやす|CÁCH AN|Giá rẻ
+#4-4
+申し込む|もうしこむ|THÂN|Đăng ký
+申込書|もうしこみしょ|THÂN THƯ|Đơn đăng ký
+申告|しんこく|THÂN CÁO|Khai báo
+申請|しんせい|THÂN THỈNH|Xin, đề nghị
+申す|もうす|THÂN|Nói (khiêm nhường)
+申し上げる|もうしあげる|THÂN THƯỢNG|Nói (khiêm nhường)
+記入|きにゅう|KÝ NHẬP|Ghi vào
+日記|にっき|NHẬT KÝ|Nhật ký
+記号|きごう|KÝ HIỆU|Ký hiệu
+記事|きじ|KÝ SỰ|Bài báo
+例|れい|LỆ|Ví dụ
+例えば|たとえば|LỆ|Ví dụ như
+年齢|ねんれい|NIÊN LINH|Tuổi
+高齢|こうれい|CAO LINH|Cao tuổi
+〜歳|さい|TUẾ|... tuổi
+二十歳|はたち|NHỊ THẬP TUẾ|20 tuổi (cũng đọc là にじゅっさい)
+性別|せいべつ|TÍNH BIỆT|Giới tính
+性格|せいかく|TÍNH CÁCH|Tính cách
+女性|じょせい|NỮ TÍNH|Nữ giới
+男性|だんせい|NAM TÍNH|Nam giới
+連休|れんきゅう|LIÊN HƯU|Kỳ nghỉ dài
+連れて行く|つれていく|LIÊN HÀNH|Dẫn đi
+連れて来る|つれてくる|LIÊN LAI|Dẫn đến
+連絡|れんらく|LIÊN LẠC|Liên lạc
+#4-5
+届ける|とどける|GIỚI|Gửi đến
+届く|とどく|GIỚI|Đến nơi
+自宅|じたく|TỰ TRẠCH|Nhà riêng
+お宅|おたく|TRẠCH|Nhà (kính ngữ)
+宅配|たくはい|TRẠCH PHỐI|Giao tận nhà
+配達|はいたつ|PHỐI ĐẠT|Giao hàng
+配送料|はいそうりょう|PHỐI TỐNG LIỆU|Phí vận chuyển
+心配|しんぱい|TÂM PHỐI|Lo lắng
+配る|くばる|PHỐI|Phân phát
+希望|きぼう|HI VỌNG|Hy vọng
+失望|しつぼう|THẤT VỌNG|Thất vọng
+望む|のぞむ|VỌNG|Mong muốn
+入荷|にゅうか|NHẬP HÀ|Nhập hàng
+出荷|しゅっか|XUẤT HÀ|Xuất hàng
+荷物|にもつ|HÀ VẬT|Hành lý
+手荷物|てにもつ|THỦ HÀ VẬT|Hành lý xách tay
+代金引換|だいきんひきかえ|ĐẠI KIM DẪN HOÁN|Giao hàng thu tiền
+乗り換え|のりかえ|THỪA HOÁN|Đổi tàu
+金額|きんがく|KIM NGẠCH|Số tiền
+半額|はんがく|BÁN NGẠCH|Nửa giá
+#4-6
+不在|ふざい|BẤT TẠI|Vắng mặt
+現在|げんざい|HIỆN TẠI|Hiện tại
+取る|とる|THỦ|Lấy
+受け取る|うけとる|THỤ THỦ|Nhận
+受取人|うけとりにん|THỤ THỦ NHÂN|Người nhận
+預金|よきん|DỰ KIM|Tiền gửi
+預ける|あずける|DỰ|Gửi
+衣類|いるい|Y LOẠI|Quần áo
+衣服|いふく|Y PHỤC|Y phục
+参加|さんか|THAM GIA|Tham gia
+参考書|さんこうしょ|THAM KHẢO THƯ|Sách tham khảo
+参る|まいる|THAM|Đi, đến (khiêm nhường)
+上達|じょうたつ|THƯỢNG ĐẠT|Tiến bộ
+速達|そくたつ|TỐC ĐẠT|Chuyển phát nhanh
+友達|ともだち|HỮU ĐẠT|Bạn bè
+通勤|つうきん|THÔNG CẦN|Đi làm
+勤める|つとめる|CẦN|Làm việc
+携帯|けいたい|HUỀ ĐỚI|Điện thoại di động
+時間帯|じかんたい|THỜI GIAN ĐỚI|Khung giờ
+帯|おび|ĐỚI|Đai obi
+#5-1
+お礼|おれい|LỄ|Lời cảm ơn
+伺う|うかがう|TÝ|Hỏi, thăm (khiêm nhường)
+遅刻|ちこく|TRÌ KHẮC|Đi muộn
+遅い|おそい|TRÌ|Chậm, muộn
+遅れる|おくれる|TRÌ|Bị muộn
+失礼|しつれい|THẤT LỄ|Thất lễ
+失敗|しっぱい|THẤT BẠI|Thất bại
+汗|あせ|HÃN|Mồ hôi
+残念|ざんねん|TÀN NIỆM|Đáng tiếc
+記念|きねん|KỶ NIỆM|Kỷ niệm
+涙|なみだ|LỆ|Nước mắt
+笑う|わらう|TIẾU|Cười
+笑い|わらい|TIẾU|Tiếng cười
+笑顔|えがお|TIẾU NHAN|Khuôn mặt tươi cười
+#5-2
+調子|ちょうし|ĐIỀU TỬ|Tình trạng
+強調|きょうちょう|CƯỜNG ĐIỀU|Nhấn mạnh
+調べる|しらべる|ĐIỀU|Tìm hiểu, tra
+調査|ちょうさ|ĐIỀU TRA|Điều tra
+移動|いどう|DI ĐỘNG|Di chuyển
+移る|うつる|DI|Chuyển (tự động từ)
+移す|うつす|DI|Chuyển (tha động từ)
+困難|こんなん|KHỐN NAN|Khó khăn
+難問|なんもん|NAN VẤN|Câu hỏi khó
+難しい|むずかしい|NAN|Khó
+簡単|かんたん|GIẢN ĐƠN|Đơn giản
+単語|たんご|ĐƠN NGỮ|Từ vựng
+単位|たんい|ĐƠN VỊ|Đơn vị, tín chỉ
+感じる|かんじる|CẢM|Cảm thấy
+感動|かんどう|CẢM ĐỘNG|Cảm động
+感想|かんそう|CẢM TƯỞNG|Cảm tưởng
+予想|よそう|DỰ TƯỞNG|Dự đoán
+#5-3
+練習|れんしゅう|LUYỆN TẬP|Luyện tập
+最近|さいきん|TỐI CẬN|Gần đây
+最初|さいしょ|TỐI SƠ|Đầu tiên
+最後|さいご|TỐI HẬU|Cuối cùng
+最も|もっとも|TỐI|Nhất
+適当|てきとう|THÍCH ĐƯƠNG|Thích hợp; qua loa
+快適|かいてき|KHOÁI THÍCH|Thoải mái
+選挙|せんきょ|TUYỂN CỬ|Bầu cử
+選手|せんしゅ|TUYỂN THỦ|Tuyển thủ
+選ぶ|えらぶ|TUYỂN|Chọn
+違う|ちがう|VI|Khác, sai
+間違い|まちがい|GIAN VI|Lỗi sai
+間違う|まちがう|GIAN VI|Nhầm
+間違える|まちがえる|GIAN VI|Làm nhầm
+直線|ちょくせん|TRỰC TUYẾN|Đường thẳng
+直接|ちょくせつ|TRỰC TIẾP|Trực tiếp
+直る|なおる|TRỰC|Được sửa
+直す|なおす|TRỰC|Sửa
+復習|ふくしゅう|PHỤC TẬP|Ôn tập
+往復|おうふく|VÃNG PHỤC|Khứ hồi
+回復|かいふく|HỒI PHỤC|Hồi phục
+辞書|じしょ|TỪ THƯ|Từ điển
+辞める|やめる|TỪ|Nghỉ (việc)
+宿題|しゅくだい|TÚC ĐỀ|Bài tập về nhà
+下宿|げしゅく|HẠ TÚC|Nhà trọ
+宿|やど|TÚC|Chỗ trọ
+#5-4
+昨日|さくじつ|TẠC NHẬT|Hôm qua (cũng đọc là きのう)
+昨夜|さくや|TẠC DẠ|Tối qua
+昨年|さくねん|TẠC NIÊN|Năm ngoái
+君|きみ|QUÂN|Cậu, em
+結構|けっこう|KẾT CẤU|Khá, được rồi
+結局|けっきょく|KẾT CỤC|Rốt cuộc
+結ぶ|むすぶ|KẾT|Buộc, kết nối
+結婚|けっこん|KẾT HÔN|Kết hôn
+新婚旅行|しんこんりょこう|TÂN HÔN LỮ HÀNH|Tuần trăng mật
+婚約|こんやく|HÔN ƯỚC|Đính hôn
+祝日|しゅくじつ|CHÚC NHẬT|Ngày lễ
+祝う|いわう|CHÚC|Chúc mừng
+お祝い|おいわい|CHÚC|Quà, lời chúc mừng
+曲|きょく|KHÚC|Bản nhạc
+曲線|きょくせん|KHÚC TUYẾN|Đường cong
+曲がる|まがる|KHÚC|Rẽ, cong
+曲げる|まげる|KHÚC|Bẻ cong
+奥さん|おくさん|ÁO|Vợ (người khác)
+奥|おく|ÁO|Bên trong
+寝る|ねる|TẨM|Ngủ
+寝坊|ねぼう|TẨM PHƯỜNG|Ngủ quên
+昼寝|ひるね|TRÚ TẨM|Ngủ trưa
+#5-5
+頭痛|ずつう|ĐẦU THỐNG|Đau đầu
+腹痛|ふくつう|PHÚC THỐNG|Đau bụng
+痛い|いたい|THỐNG|Đau
+熱|ねつ|NHIỆT|Sốt, nhiệt
+熱心|ねっしん|NHIỆT TÂM|Nhiệt tình
+熱い|あつい|NHIỆT|Nóng
+虫|むし|TRÙNG|Côn trùng
+歯科|しか|XỈ KHOA|Nha khoa
+歯|は|XỈ|Răng
+虫歯|むしば|TRÙNG XỈ|Răng sâu
+治す|なおす|TRỊ|Chữa (bệnh)
+政治|せいじ|CHÍNH TRỊ|Chính trị
+治療|ちりょう|TRỊ LIỆU|Điều trị
+治る|なおる|TRỊ|Khỏi bệnh
+汚い|きたない|Ô|Bẩn
+汚れる|よごれる|Ô|Bị bẩn
+並ぶ|ならぶ|TỊNH|Xếp hàng
+並べる|ならべる|TỊNH|Sắp xếp
+歯並び|はならび|XỈ TỊNH|Hàm răng
+他の|ほかの|THA|Khác
+その他|そのた|THA|Ngoài ra, khác
+#5-6
+身長|しんちょう|THÂN TRƯỜNG|Chiều cao
+独身|どくしん|ĐỘC THÂN|Độc thân
+身分|みぶん|THÂN PHẬN|Thân phận
+刺身|さしみ|THÍCH THÂN|Sashimi
+日本酒|にほんしゅ|NHẬT BẢN TỬU|Rượu Nhật
+料理酒|りょうりしゅ|LIỆU LÝ TỬU|Rượu nấu ăn
+お酒|おさけ|TỬU|Rượu
+酒屋|さかや|TỬU ỐC|Cửa hàng rượu
+呼吸|こきゅう|HÔ HẤP|Hô hấp
+吸う|すう|HẤP|Hút, hít
+食欲|しょくよく|THỰC DỤC|Thèm ăn
+意欲|いよく|Ý DỤC|Động lực
+欲しい|ほしい|DỤC|Muốn có
+睡眠|すいみん|THỤY MIÊN|Giấc ngủ
+眠い|ねむい|MIÊN|Buồn ngủ
+眠る|ねむる|MIÊN|Ngủ
+疲れる|つかれる|BÌ|Mệt
+息|いき|TỨC|Hơi thở
+息切れ|いきぎれ|TỨC THIẾT|Hụt hơi
+息子|むすこ|TỨC TỬ|Con trai
+呼ぶ|よぶ|HÔ|Gọi
+#6-1
+予報|よほう|DỰ BÁO|Dự báo
+報告|ほうこく|BÁO CÁO|Báo cáo
+晴れる|はれる|TÌNH|Trời quang
+晴れ|はれ|TÌNH|Trời nắng
+雲|くも|VÂN|Mây
+暖房|だんぼう|NOÃN PHÒNG|Máy sưởi
+暖かい|あたたかい|NOÃN|Ấm áp
+雪|ゆき|TUYẾT|Tuyết
+地震|じしん|ĐỊA CHẤN|Động đất
+震度|しんど|CHẤN ĐỘ|Cường độ động đất
+電波|でんぱ|ĐIỆN BA|Sóng điện
+波|なみ|BA|Sóng
+津波|つなみ|TÂN BA|Sóng thần
+吹く|ふく|XÚY|Thổi
+#6-2
+要求|ようきゅう|YẾU CẦU|Yêu cầu
+求人|きゅうじん|CẦU NHÂN|Tuyển người
+請求書|せいきゅうしょ|THỈNH CẦU THƯ|Hóa đơn
+求める|もとめる|CẦU|Tìm kiếm, yêu cầu
+募集|ぼしゅう|MỘ TẬP|Tuyển dụng
+職場|しょくば|CHỨC TRƯỜNG|Nơi làm việc
+職業|しょくぎょう|CHỨC NGHIỆP|Nghề nghiệp
+転職|てんしょく|CHUYỂN CHỨC|Chuyển việc
+職員|しょくいん|CHỨC VIÊN|Nhân viên
+美容院|びよういん|MỸ DUNG VIỆN|Tiệm làm tóc
+内容|ないよう|NỘI DUNG|Nội dung
+技術者|ぎじゅつしゃ|KỸ THUẬT GIẢ|Kỹ sư
+事務|じむ|SỰ VỤ|Công việc văn phòng
+公務員|こうむいん|CÔNG VỤ VIÊN|Công chức
+事務所|じむしょ|SỰ VỤ SỞ|Văn phòng
+税務署|ぜいむしょ|THUẾ VỤ THỰ|Sở thuế
+課長|かちょう|KHÓA TRƯỞNG|Trưởng nhóm
+一般|いっぱん|NHẤT BAN|Phổ biến, chung
+一般に|いっぱんに|NHẤT BAN|Nói chung
+#6-3
+地球|ちきゅう|ĐỊA CẦU|Trái đất
+野球|やきゅう|DÃ CẦU|Bóng chày
+電球|でんきゅう|ĐIỆN CẦU|Bóng đèn
+決して|けっして|QUYẾT|Tuyệt đối không
+決定|けってい|QUYẾT ĐỊNH|Quyết định
+決める|きめる|QUYẾT|Quyết định (tha động từ)
+決まる|きまる|QUYẾT|Được quyết định
+優勝|ゆうしょう|ƯU THẮNG|Vô địch
+決勝|けっしょう|QUYẾT THẮNG|Chung kết
+勝つ|かつ|THẮNG|Thắng
+反対|はんたい|PHẢN ĐỐI|Phản đối
+流れる|ながれる|LƯU|Chảy
+流す|ながす|LƯU|Làm chảy, xả
+勝負|しょうぶ|THẮNG PHỤ|Thắng bại
+負ける|まける|PHỤ|Thua
+投手|とうしゅ|ĐẦU THỦ|Cầu thủ ném bóng
+投げる|なげる|ĐẦU|Ném
+結果|けっか|KẾT QUẢ|Kết quả
+果物|くだもの|QUẢ VẬT|Trái cây (cách đọc đặc biệt)
+#6-4
+戦後|せんご|CHIẾN HẬU|Sau chiến tranh
+戦争|せんそう|CHIẾN TRANH|Chiến tranh
+戦う|たたかう|CHIẾN|Chiến đấu
+経験|けいけん|KINH NGHIỆM|Kinh nghiệm
+経営|けいえい|KINH DOANH|Kinh doanh
+成長|せいちょう|THÀNH TRƯỞNG|Trưởng thành
+完成|かんせい|HOÀN THÀNH|Hoàn thành
+貿易|ぼうえき|MẬU DỊCH|Mậu dịch
+易しい|やさしい|DỊ|Dễ
+輸出|ゆしゅつ|THÂU XUẤT|Xuất khẩu
+輸送|ゆそう|THÂU TỐNG|Vận chuyển
+輸入|ゆにゅう|THÂU NHẬP|Nhập khẩu
+相談|そうだん|TƯƠNG ĐÀM|Bàn bạc
+首相|しゅしょう|THỦ TƯỚNG|Thủ tướng
+相手|あいて|TƯƠNG THỦ|Đối phương
+経済|けいざい|KINH TẾ|Kinh tế
+済む|すむ|TẾ|Xong
+#6-5
+文化|ぶんか|VĂN HÓA|Văn hóa
+化学|かがく|HÓA HỌC|Hóa học
+化粧|けしょう|HÓA TRANG|Trang điểm
+比べる|くらべる|TỶ|So sánh
+原料|げんりょう|NGUYÊN LIỆU|Nguyên liệu
+原因|げんいん|NGUYÊN NHÂN|Nguyên nhân
+国際|こくさい|QUỐC TẾ|Quốc tế
+交際|こうさい|GIAO TẾ|Giao du
+会議|かいぎ|HỘI NGHỊ|Cuộc họp
+議員|ぎいん|NGHỊ VIÊN|Nghị sĩ
+生活|せいかつ|SINH HOẠT|Cuộc sống
+活動|かつどう|HOẠT ĐỘNG|Hoạt động
+大変|たいへん|ĐẠI BIẾN|Vất vả, rất
+変化|へんか|BIẾN HÓA|Thay đổi
+変わる|かわる|BIẾN|Thay đổi (tự động từ)
+変える|かえる|BIẾN|Thay đổi (tha động từ)
+#6-6
+政治家|せいじか|CHÍNH TRỊ GIA|Chính trị gia
+政府|せいふ|CHÍNH PHỦ|Chính phủ
+都道府県|とどうふけん|ĐÔ ĐẠO PHỦ HUYỆN|Đơn vị hành chính
+改正|かいせい|CẢI CHÍNH|Sửa đổi
+改札口|かいさつぐち|CẢI TRÁT KHẨU|Cửa soát vé
+改める|あらためる|CẢI|Sửa đổi
+否定|ひてい|PHỦ ĐỊNH|Phủ định
+否定的|ひていてき|PHỦ ĐỊNH ĐÍCH|Mang tính phủ định
+目的|もくてき|MỤC ĐÍCH|Mục đích
+国際的|こくさいてき|QUỐC TẾ ĐÍCH|Mang tính quốc tế
+個人的|こじんてき|CÁ NHÂN ĐÍCH|Mang tính cá nhân
+実際に|じっさいに|THỰC TẾ|Thực tế
+実は|じつは|THỰC|Thật ra
+実験|じっけん|THỰC NGHIỆM|Thí nghiệm
+欠点|けってん|KHIẾM ĐIỂM|Khuyết điểm
+欠ける|かける|KHIẾM|Thiếu
+専門|せんもん|CHUYÊN MÔN|Chuyên môn
+専門家|せんもんか|CHUYÊN MÔN GIA|Chuyên gia
+`;
+
+// ===== Đọc dữ liệu =====
+const KANJI = {};
+KANJI_RAW.trim().split("\n").forEach(l => {
+  const [c, hv, on, kun] = l.split("|");
+  KANJI[c] = { hv, on, kun };
+});
+EX_RAW.trim().split("\n").forEach(l => {
+  const [c, jp, vi] = l.split("|");
+  if (KANJI[c]) KANJI[c].ex = { jp, vi };
+});
+const WORDS = [];
+let curW = 0, curD = 0;
+RAW.trim().split("\n").forEach(line => {
+  line = line.trim();
+  if (!line) return;
+  if (line.startsWith("#")) { [curW, curD] = line.slice(1).split("-").map(Number); return; }
+  const [word, reading, hv, meaning] = line.split("|");
+  WORDS.push({ week: curW, day: curD, word, reading, hv, meaning });
+});
+const ALL_READINGS = [...new Set(WORDS.map(w => w.reading))];
+const BY_READING = {};
+WORDS.forEach(w => (BY_READING[w.reading] = BY_READING[w.reading] || []).push(w));
+
+// ===== Tạo đáp án nhiễu kèm lý do =====
+const VOICE_GROUPS = ["かが","きぎ","くぐ","けげ","こご","さざ","しじ","すず","せぜ","そぞ","ただ","ちぢ","つづ","てで","とど","はばぱ","ひびぴ","ふぶぷ","へべぺ","ほぼぽ"];
+const VOICE = {};
+VOICE_GROUPS.forEach(g => [...g].forEach(c => VOICE[c] = [...g].filter(x => x !== c)));
+const O_U_ROW = new Set([..."おこそとのほもよろごぞどぼぽょうくすつぬふむゆるぐずぶぷゅ"]);
+const KSTP = new Set([..."かきくけこさしすせそたちつてとぱぴぷぺぽ"]);
+const KANA_ONLY = /^[\u3040-\u30ffー]+$/;
+
+function rand(n) { return Math.floor(Math.random() * n); }
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function voiceName(c) {
+  if (/[がぎぐげござじずぜぞだぢづでどばびぶべぼ]/.test(c)) return "âm đục";
+  if (/[ぱぴぷぺぽ]/.test(c)) return "âm bán đục";
+  return "âm trong";
+}
+
+function variants(r) {
+  const out = new Map();
+  const ch = [...r];
+  const add = (arr, why) => { const s = arr.join(""); if (s && s !== r && KANA_ONLY.test(s) && !out.has(s)) out.set(s, why); };
+  for (let i = 0; i < ch.length; i++) {
+    const c = ch[i], next = ch[i + 1], prev = ch[i - 1];
+    if (c === "う" && i > 0 && O_U_ROW.has(prev))
+      add(ch.slice(0, i).concat(ch.slice(i + 1)), `Thiếu trường âm: phải là「${ch.slice(Math.max(0, i - 2), i + 1).join("")}」(có う kéo dài), không phải「${ch.slice(Math.max(0, i - 2), i).join("")}」.`);
+    if (O_U_ROW.has(c) && next !== "う" && c !== "う")
+      add(ch.slice(0, i + 1).concat(["う"], ch.slice(i + 1)), `Thừa trường âm: chỗ「${ch.slice(Math.max(0, i - 1), i + 1).join("")}」là âm ngắn, không kéo dài thành「${ch.slice(Math.max(0, i - 1), i + 1).join("")}う」.`);
+    if (VOICE[c]) VOICE[c].forEach(v => {
+      const t = ch.slice(); t[i] = v;
+      add(t, `Sai âm đục/trong: đúng là「${c}」(${voiceName(c)}), không phải「${v}」(${voiceName(v)}).`);
+    });
+    if (c === "っ") {
+      add(ch.slice(0, i).concat(ch.slice(i + 1)), `Thiếu âm ngắt「っ」: từ này có âm lặp (ví dụ「${ch.slice(Math.max(0, i - 1), i + 2).join("")}」).`);
+      const t = ch.slice(); t[i] = "つ";
+      add(t, `「っ」ở đây là âm ngắt nhỏ, không đọc thành「つ」to.`);
+    }
+    if (i > 0 && KSTP.has(c) && prev !== "っ" && prev !== "ん")
+      add(ch.slice(0, i).concat(["っ"], ch.slice(i)), `Thừa âm ngắt「っ」: giữa「${prev}」và「${c}」không có âm ngắt.`);
+    if (c === "ゅ" || c === "ょ") {
+      const t = ch.slice(); t[i] = c === "ゅ" ? "ょ" : "ゅ";
+      add(t, `Nhầm âm ghép: đúng là「${ch.slice(i - 1, i + 1).join("")}」, không phải「${t.slice(i - 1, i + 1).join("")}」.`);
+    }
+  }
+  return [...out.entries()];
+}
+
+function makeOptions(item) {
+  const answer = item.reading;
+  const reasons = {};
+  shuffle(variants(answer)).slice(0, 2).forEach(([v, why]) => reasons[v] = why);
+  const len = [...answer].length;
+  let pool = shuffle(ALL_READINGS.filter(r => r !== answer && !(r in reasons) && Math.abs([...r].length - len) <= 1));
+  if (pool.length < 3) pool = shuffle(ALL_READINGS.filter(r => r !== answer && !(r in reasons)));
+  for (const r of pool) {
+    if (Object.keys(reasons).length >= 3) break;
+    const owners = BY_READING[r] || [];
+    reasons[r] = owners.length
+      ? `Đây là cách đọc của ${owners.map(o => `「${o.word}」(${o.meaning})`).join(", ")}.`
+      : "Không phải cách đọc của từ này.";
+  }
+  return { opts: shuffle([answer, ...Object.keys(reasons)]), reasons };
+}
+
+// ===== Giao diện =====
+const $ = id => document.getElementById(id);
+const LETTERS = ["A", "B", "C", "D"];
+let questions = [], idx = 0, score = 0, wrong = [], answered = false;
+let timerOn = true, limitMs = 10000, remainMs = 0, paused = false, tick = null, lastT = 0;
+
+function stopTimer() { if (tick) { clearInterval(tick); tick = null; } }
+function drawTimer() {
+  const pct = Math.max(0, remainMs / limitMs) * 100;
+  $("tfill").style.width = pct + "%";
+  $("tfill").classList.toggle("low", remainMs <= 3000);
+  $("tnum").textContent = (Math.max(0, remainMs) / 1000).toFixed(1) + "s";
+}
+function startTimer() {
+  stopTimer();
+  setPaused(false);
+  $("timerRow").classList.toggle("hidden", !timerOn);
+  if (!timerOn) return;
+  remainMs = limitMs; lastT = performance.now(); drawTimer();
+  tick = setInterval(() => {
+    const now = performance.now();
+    if (!paused && !answered) {
+      remainMs -= now - lastT;
+      drawTimer();
+      if (remainMs <= 0) { stopTimer(); choose(-1); }
+    }
+    lastT = now;
+  }, 100);
+}
+function setPaused(v) {
+  paused = v;
+  $("pauseBtn").textContent = v ? "Tiếp tục" : "Tạm dừng";
+  $("opts").classList.toggle("paused", v);
+  $("pausedNote").classList.toggle("hidden", !v);
+}
+function togglePause() { if (timerOn && !answered) setPaused(!paused); }
+
+function fillSelects() {
+  const weeks = [...new Set(WORDS.map(w => w.week))];
+  $("week").innerHTML = `<option value="0">Tất cả các tuần</option>` + weeks.map(w => `<option value="${w}">Tuần ${w}</option>`).join("");
+  updateDays();
+}
+function updateDays() {
+  const w = +$("week").value;
+  const days = w ? [...new Set(WORDS.filter(x => x.week === w).map(x => x.day))] : [];
+  $("day").innerHTML = `<option value="0">Tất cả các ngày</option>` + days.map(d => `<option value="${d}">Ngày ${d}</option>`).join("");
+  $("day").disabled = !w;
+  updateCount();
+}
+function selected() {
+  const w = +$("week").value, d = +$("day").value;
+  return WORDS.filter(x => (!w || x.week === w) && (!d || x.day === d));
+}
+function updateCount() { $("countInfo").textContent = `Có ${selected().length} từ trong phần đã chọn.`; }
+function show(id) { ["setup", "quiz", "result"].forEach(s => $(s).classList.toggle("hidden", s !== id)); }
+
+function start(list) {
+  questions = list.map(item => ({ item, ...makeOptions(item) }));
+  idx = 0; score = 0; wrong = [];
+  show("quiz");
+  render();
+}
+
+function render() {
+  answered = false;
+  const q = questions[idx];
+  $("qnum").textContent = `Câu ${idx + 1}/${questions.length}`;
+  $("qscore").textContent = `Đúng: ${score}`;
+  $("pbar").style.width = `${(idx / questions.length) * 100}%`;
+  $("qword").textContent = q.item.word;
+  $("qtag").textContent = `Tuần ${q.item.week} · Ngày ${q.item.day}`;
+  $("explain").className = "explain";
+  $("explain").innerHTML = "";
+  $("pauseBtn").disabled = false;
+  $("nextBtn").disabled = true;
+  $("nextBtn").textContent = idx === questions.length - 1 ? "Xem kết quả" : "Câu tiếp";
+  $("opts").innerHTML = q.opts.map((o, i) =>
+    `<button class="opt" data-i="${i}"><span class="key">${LETTERS[i]}</span><span class="kana jp">${o}</span></button>`
+  ).join("");
+  $("opts").querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => choose(+b.dataset.i)));
+  startTimer();
+}
+
+function kanjiBreakdown(word) {
+  const seen = new Set();
+  const items = [...word].filter(c => KANJI[c] && !seen.has(c) && seen.add(c));
+  if (!items.length) return "";
+  return `<div><p class="ex-h">Phân tích chữ Hán và câu ví dụ</p><div class="kanji-list">` +
+    items.map(c => {
+      const k = KANJI[c];
+      return `<div class="kanji-item"><div class="big jp">${c}</div><div>
+        <div class="hv">${k.hv}</div>
+        <div class="rd jp"><span>Âm On:</span> ${k.on || "—"}　<span>Âm Kun:</span> ${k.kun || "—"}</div>
+        ${k.ex ? `<div class="ex-sent"><div class="jp">${k.ex.jp.replace(/【(.+?)】/g, '<b>$1</b>')}</div><div class="vi">${k.ex.vi}</div></div>` : ""}
+      </div></div>`;
+    }).join("") + `</div></div>`;
+}
+
+function choose(i) {
+  if (answered || (paused && i >= 0)) return;
+  answered = true;
+  stopTimer();
+  $("pauseBtn").disabled = true;
+  const q = questions[idx], it = q.item;
+  const timeout = i < 0;
+  const picked = timeout ? "(hết giờ)" : q.opts[i];
+  const ok = picked === it.reading;
+  $("opts").querySelectorAll(".opt").forEach((b, j) => {
+    b.disabled = true;
+    if (q.opts[j] === it.reading) b.classList.add("correct");
+    else if (j === i) b.classList.add("wrong");
+  });
+  if (ok) score++; else wrong.push({ item: it, picked });
+  $("qscore").textContent = `Đúng: ${score}`;
+
+  const optRows = q.opts.map((o, j) => {
+    const isRight = o === it.reading;
+    const cls = isRight ? "right" : (j === i ? "picked" : "");
+    const why = isRight ? "Đáp án đúng." : q.reasons[o];
+    return `<div class="opt-ex-row ${cls}"><span class="key">${LETTERS[j]}</span>
+      <div><span class="rk jp">${o}</span>${j === i && !isRight ? " (bạn chọn)" : ""}<span class="why">${why}</span></div></div>`;
+  }).join("");
+
+  const ex = $("explain");
+  ex.className = "explain show";
+  ex.innerHTML =
+    `<div class="verdict ${ok ? "ok" : "bad"}">${ok ? "Chính xác!" : `${timeout ? "Hết giờ!" : "Chưa đúng."} Đáp án đúng là ${LETTERS[q.opts.indexOf(it.reading)]}.`}</div>
+     <div class="ex-body">
+       <div class="ex-word jp">${it.word}<small>${it.reading}</small></div>
+       <dl class="ex-meta">
+         ${it.hv ? `<dt>Hán Việt</dt><dd>${it.hv}</dd>` : ""}
+         <dt>Nghĩa</dt><dd>${it.meaning}</dd>
+       </dl>
+       ${kanjiBreakdown(it.word)}
+       <div><p class="ex-h">Giải thích các đáp án</p><div class="opt-ex">${optRows}</div></div>
+     </div>`;
+  $("nextBtn").disabled = false;
+  $("nextBtn").focus({ preventScroll: true });
+}
+
+function next() {
+  if (!answered) return;
+  if (idx < questions.length - 1) { idx++; render(); window.scrollTo({ top: 0 }); }
+  else finish();
+}
+
+function finish() {
+  stopTimer();
+  show("result");
+  const total = questions.length;
+  const done = answered ? idx + 1 : idx;
+  $("rscore").textContent = `${score}/${done || total}`;
+  $("rsub").textContent = done ? `Đúng ${Math.round((score / done) * 100)}%` : "";
+  $("wrongWrap").classList.toggle("hidden", wrong.length === 0);
+  $("retryWrongBtn").classList.toggle("hidden", wrong.length === 0);
+  $("wrongList").innerHTML = wrong.map(w =>
+    `<tr><td class="jp">${w.item.word}</td><td class="jp">${w.item.reading}</td><td class="jp"><span class="bad">${w.picked}</span></td><td>${w.item.hv || ""}</td><td>${w.item.meaning}</td></tr>`
+  ).join("");
+}
+
+$("week").addEventListener("change", updateDays);
+$("day").addEventListener("change", updateCount);
+$("startBtn").addEventListener("click", () => {
+  let list = selected().slice();
+  if ($("shuffle").checked) shuffle(list);
+  const lim = parseInt($("limit").value, 10);
+  if (lim > 0) list = list.slice(0, lim);
+  timerOn = $("useTimer").checked;
+  limitMs = Math.max(3, parseInt($("secs").value, 10) || 10) * 1000;
+  if (list.length) start(list);
+});
+$("nextBtn").addEventListener("click", next);
+$("pauseBtn").addEventListener("click", togglePause);
+$("useTimer").addEventListener("change", () => $("secs").disabled = !$("useTimer").checked);
+$("quitBtn").addEventListener("click", () => { if (idx > 0 || answered) finish(); else show("setup"); });
+$("restartBtn").addEventListener("click", () => show("setup"));
+$("retryWrongBtn").addEventListener("click", () => start(shuffle(wrong.map(w => w.item))));
+
+document.addEventListener("keydown", e => {
+  if ($("quiz").classList.contains("hidden")) return;
+  const k = e.key.toUpperCase();
+  const map = { "1": 0, "2": 1, "3": 2, "4": 3, "A": 0, "B": 1, "C": 2, "D": 3 };
+  if (k === "P") { e.preventDefault(); togglePause(); }
+  else if (k in map && !answered) { e.preventDefault(); choose(map[k]); }
+  else if (e.key === "Enter" && answered) { e.preventDefault(); next(); }
+});
+
+fillSelects();
+</script>
+</body>
+</html>
